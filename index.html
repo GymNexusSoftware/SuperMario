@@ -2,16 +2,21 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>Super Mario - Edição Robusta PWA</title>
+    <title>Super Mario - Versão Robusta Final</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="manifest" href="manifest.json">
     <style>
         body { margin: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: manipulation; }
         canvas { border: 4px solid #333; image-rendering: pixelated; background: #5c94fc; display: none; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #namePopup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 4px solid #fff; padding: 30px; text-align: center; box-shadow: 8px 8px 0 #f0f; z-index: 1000; color: white; }
-        #nameInput { padding: 10px; width: 80%; background: #111; border: 2px solid #0ff; color: #fff; text-align: center; margin: 15px 0; outline: none; }
-        #startBtn { padding: 12px 25px; background: #f0f; color: #fff; border: 2px solid #fff; cursor: pointer; font-weight: bold; text-transform: uppercase; }
-        .controls { display: none; justify-content: space-between; width: 95vw; padding: 15px; }
-        .btn { width: 70px; height: 70px; background: rgba(50,50,50,0.8); border: 3px solid #eee; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 24px; user-select: none; touch-action: none; }
+        
+        /* INTERFACE INICIAL */
+        #namePopup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 4px solid #fff; padding: 30px; text-align: center; box-shadow: 8px 8px 0 #f0f; z-index: 1000; color: white; width: 280px; }
+        #nameInput { padding: 12px; width: 80%; background: #111; border: 2px solid #0ff; color: #fff; text-align: center; margin: 15px 0; outline: none; font-size: 18px; }
+        #startBtn { padding: 12px 25px; background: #f0f; color: #fff; border: 2px solid #fff; cursor: pointer; font-weight: bold; text-transform: uppercase; width: 100%; }
+        
+        /* CONTROLOS MOBILE */
+        .controls { display: none; justify-content: space-between; width: 95vw; padding: 15px; position: absolute; bottom: 20px; }
+        .btn { width: 75px; height: 75px; background: rgba(50,50,50,0.8); border: 3px solid #eee; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 28px; user-select: none; touch-action: none; }
         .actions .btn { background: #a00; }
         .d-pad, .actions { display: flex; gap: 20px; }
     </style>
@@ -19,7 +24,7 @@
 <body>
 
     <div id="namePopup">
-        <h2 style="color: #ff0; margin: 0;">MARIO ENGINE V3</h2>
+        <h2 style="color: #ff0; margin: 0;">MARIO ENGINE</h2>
         <input type="text" id="nameInput" maxlength="10" placeholder="TEU NOME">
         <br>
         <button id="startBtn">START GAME</button>
@@ -39,17 +44,18 @@
     </div>
 
 <script>
+// --- CONFIGURAÇÃO INICIAL ---
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = 600; 
 canvas.height = 350;
 
-// CONFIGURAÇÕES E ASSETS
 const TILE_SIZE = 25;
 const GRAVITY = 0.6;
 const JUMP_FORCE = -11;
 const SPEED = 4;
 
+// CARREGAMENTO DE IMAGENS
 const imgHero = new Image(); imgHero.src = 'heroi.png';
 const imgMonstro = new Image(); imgMonstro.src = 'monstro1.png';
 const imgPlat = new Image(); imgPlat.src = 'plataforma.jpg';
@@ -59,100 +65,107 @@ let score = 0;
 let cameraX = 0;
 let playerName = "PLAYER";
 let isPaused = false;
-let gameTime = 400;
 let fireballs = [];
 let monsters = [];
+const keys = {};
 
 const player = {
     x: 50, y: 100,
-    w: 30, h: 42,
+    w: 28, h: 40,
     vx: 0, vy: 0,
     jumping: true,
     dir: 1,
     hp: 100
 };
 
-const keys = {};
-
-// GERAÇÃO DE NÍVEL SÓLIDO
+// --- GERAÇÃO DE NÍVEIS ---
 const levels = [];
 for(let l=0; l<10; l++) {
-    let data = [];
-    for(let i=0; i<250; i++) {
-        if(i < 10) data.push(1); // Início seguro
-        else {
-            let r = Math.random();
-            if(r < 0.75) data.push(1);      // Chão normal
-            else if(r < 0.85) data.push(0); // Buraco
-            else if(r < 0.92) data.push(3); // Cano/Monte Médio
-            else data.push(4);             // Cano/Monte Alto
-        }
+    let data = [1,1,1,1,1];
+    for(let i=0; i<200; i++) {
+        let r = Math.random();
+        if(r < 0.70) data.push(1);      // Chão
+        else if(r < 0.80) data.push(0); // Buraco
+        else if(r < 0.90) data.push(3); // Monte Médio (2 tiles)
+        else data.push(4);             // Monte Alto (3 tiles)
     }
-    data.push(1,1,2); // Fim com bandeira
+    data.push(1,1,1,2); // Bandeira final
     levels.push(data);
+}
+
+// --- FUNÇÕES DE LÓGICA ---
+
+function getTileAt(x, y) {
+    const col = Math.floor(x / TILE_SIZE);
+    const type = (levels[currentLevel] && levels[currentLevel][col] !== undefined) ? levels[currentLevel][col] : 0;
+    
+    let h = 0;
+    if(type === 1) h = 1;
+    if(type === 3) h = 2;
+    if(type === 4) h = 3;
+    if(type === 2) h = 10; // Altura da bandeira para colisão
+
+    return {
+        type: type,
+        top: canvas.height - (h * TILE_SIZE)
+    };
 }
 
 function initLevel() {
     monsters = [];
     fireballs = [];
-    const data = levels[currentLevel];
-    data.forEach((tile, i) => {
+    levels[currentLevel].forEach((tile, i) => {
         if(tile === 1 && i > 20 && Math.random() > 0.95) {
             monsters.push({ x: i*TILE_SIZE, y: canvas.height-TILE_SIZE-30, w: 30, h: 30, alive: true, vx: -1.5 });
         }
     });
 }
 
-function resetGame(type) {
-    if(type === "fall" || type === "death") {
+function resetGame(status) {
+    if(status === "fall" || status === "death") {
         player.hp -= 25;
-        if(player.hp <= 0) { player.hp = 100; currentLevel = 0; score = 0; }
+        if(player.hp <= 0) { player.hp = 100; score = 0; currentLevel = 0; }
     }
-    player.x = 50; player.y = 100; player.vx = 0; player.vy = 0;
+    player.x = 60; player.y = 100; player.vx = 0; player.vy = 0;
     cameraX = 0;
     initLevel();
     isPaused = true;
     setTimeout(() => { isPaused = false; }, 1000);
 }
 
-// LÓGICA DE COLISÃO PRECISA
-function getTile(x, y) {
-    const col = Math.floor(x / TILE_SIZE);
-    const row = Math.floor(y / TILE_SIZE); // Opcional se tivéssemos tiles verticais
-    const type = levels[currentLevel][col] || 0;
-    let height = 0;
-    if(type === 1) height = 1;
-    if(type === 3) height = 2;
-    if(type === 4) height = 3;
-    if(type === 2) height = 99; // Bandeira
-    return { type, top: canvas.height - (height * TILE_SIZE) };
+function shoot() {
+    if(!isPaused) {
+        fireballs.push({ x: player.x + 10, y: player.y + 15, w: 10, h: 10, vx: player.dir * 8 });
+    }
 }
+
+// --- LOOP PRINCIPAL (UPDATE + DRAW) ---
 
 function update() {
     if(isPaused) return;
 
-    // Movimento Horizontal
+    // 1. MOVIMENTO HORIZONTAL + COLISÃO DE PAREDE
     if(keys["ArrowRight"]) { player.vx = SPEED; player.dir = 1; }
     else if(keys["ArrowLeft"]) { player.vx = -SPEED; player.dir = -1; }
     else { player.vx = 0; }
 
-    // Aplicar VX e verificar paredes
+    let oldX = player.x;
     player.x += player.vx;
-    
-    // Verificação de Parede (Check na frente do boneco em 3 alturas: pés, meio, cabeça)
+
+    // Verificar se o novo X entra dentro de um bloco (Paredes)
+    // Checkamos 3 pontos na lateral: cabeça, meio e pés (ligeiramente acima do chão)
     let sideX = player.vx > 0 ? player.x + player.w : player.x;
-    let checkPoints = [player.y + 5, player.y + player.h / 2, player.y + player.h - 5];
-    
-    for(let py of checkPoints) {
-        let t = getTile(sideX, py);
-        if(py > t.top) { // Se algum ponto colidir com a altura do tile
-            player.x -= player.vx; // Bloqueia movimento
-            player.vx = 0;
-            break;
-        }
+    let hitWall = false;
+    [player.y + 2, player.y + player.h / 2, player.y + player.h - 5].forEach(py => {
+        if(py > getTileAt(sideX, py).top) hitWall = true;
+    });
+
+    if(hitWall) {
+        player.x = oldX; // Bloqueio total: não deixa entrar no tile
+        player.vx = 0;
     }
 
-    // Gravidade e Pulo
+    // 2. MOVIMENTO VERTICAL + COLISÃO DE CHÃO
     if(keys["ArrowUp"] && !player.jumping) {
         player.vy = JUMP_FORCE;
         player.jumping = true;
@@ -160,12 +173,10 @@ function update() {
     player.vy += GRAVITY;
     player.y += player.vy;
 
-    // Verificação de Chão e Teto
-    let centerX = player.x + player.w / 2;
-    let tFoot = getTile(centerX, player.y + player.h);
-    
+    // Checkamos os pés (centro do boneco)
+    let tFoot = getTileAt(player.x + player.w / 2, player.y + player.h);
     if(player.y + player.h > tFoot.top) {
-        if(tFoot.type === 2) { // Vitoria
+        if(tFoot.type === 2) { // Vitória
             currentLevel++;
             resetGame("win");
             return;
@@ -175,18 +186,22 @@ function update() {
         player.jumping = false;
     }
 
-    if(player.y > canvas.height) { resetGame("fall"); return; }
+    // Queda
+    if(player.y > canvas.height) resetGame("fall");
 
-    // Câmera
+    // 3. CÂMERA
     cameraX = Math.max(0, player.x - 150);
 
-    // Balas vs Cenário
-    for(let i = fireballs.length-1; i>=0; i--) {
+    // 4. BALAS VS CENÁRIO (BALAS SÓLIDAS)
+    for(let i = fireballs.length - 1; i >= 0; i--) {
         let f = fireballs[i];
         f.x += f.vx;
-        let tBala = getTile(f.x + (f.vx > 0 ? f.w : 0), f.y + f.h/2);
-        if(f.y + f.h > tBala.top) { fireballs.splice(i, 1); continue; }
-        
+        let tBala = getTileAt(f.x + (f.vx > 0 ? f.w : 0), f.y + f.h/2);
+        if(f.y + f.h > tBala.top) { // Bateu no monte/chão
+            fireballs.splice(i, 1);
+            continue;
+        }
+        // Balas vs Monstros
         monsters.forEach(m => {
             if(m.alive && f.x < m.x + m.w && f.x + f.w > m.x && f.y < m.y + m.h && f.y + f.h > m.y) {
                 m.alive = false; score += 200; fireballs.splice(i, 1);
@@ -194,11 +209,14 @@ function update() {
         });
     }
 
-    // Monstros
+    // 5. MONSTROS
     monsters.forEach(m => {
         if(!m.alive) return;
         m.x += m.vx;
-        // Colisão simples monstro/jogador
+        // Inverter direção ao bater em paredes
+        let mt = getTileAt(m.vx > 0 ? m.x + m.w : m.x, m.y + m.h/2);
+        if(m.y + m.h/2 > mt.top) m.vx *= -1;
+
         if(player.x < m.x + m.w && player.x + player.w > m.x && player.y < m.y + m.h && player.y + player.h > m.y) {
             if(player.vy > 0 && player.y + player.h < m.y + 15) {
                 m.alive = false; score += 100; player.vy = -8;
@@ -215,7 +233,7 @@ function draw() {
     if(isPaused) {
         ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#fff"; ctx.font = "24px Courier"; ctx.textAlign = "center";
-        ctx.fillText(`WORLD 1-${currentLevel+1}`, canvas.width/2, canvas.height/2);
+        ctx.fillText(`MUNDO 1-${currentLevel+1}`, canvas.width/2, canvas.height/2);
         ctx.textAlign = "left";
         requestAnimationFrame(draw);
         return;
@@ -224,9 +242,8 @@ function draw() {
     ctx.save();
     ctx.translate(-cameraX, 0);
 
-    // Desenhar Cenário
-    const data = levels[currentLevel];
-    data.forEach((tile, i) => {
+    // DESENHAR CENÁRIO
+    levels[currentLevel].forEach((tile, i) => {
         if(tile === 0) return;
         let x = i * TILE_SIZE;
         let h = (tile === 3 ? 2 : tile === 4 ? 3 : 1);
@@ -236,21 +253,30 @@ function draw() {
             ctx.fillStyle = "#fff"; ctx.fillRect(x, canvas.height-120, 5, 120);
             ctx.fillStyle = "#f0f"; ctx.fillRect(x, canvas.height-120, 25, 20);
         } else {
-            ctx.fillStyle = "#8b4513"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE);
-            ctx.fillStyle = "#2e7d32"; ctx.fillRect(x, y, TILE_SIZE, 5);
+            // Se imagem da plataforma falhar, usa cores
+            if(imgPlat.complete && imgPlat.naturalWidth !== 0) {
+                ctx.drawImage(imgPlat, x, y, TILE_SIZE, TILE_SIZE);
+                if(h > 1) { // Preenchimento para montes
+                    ctx.fillStyle = "#8b4513";
+                    ctx.fillRect(x, y + TILE_SIZE, TILE_SIZE, (h-1) * TILE_SIZE);
+                }
+            } else {
+                ctx.fillStyle = "#8b4513"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE);
+                ctx.fillStyle = "#2e7d32"; ctx.fillRect(x, y, TILE_SIZE, 5);
+            }
         }
     });
 
-    // Monstros e Balas
+    // MONSTROS E BALAS
     monsters.forEach(m => { if(m.alive) ctx.drawImage(imgMonstro, m.x, m.y, m.w, m.h); });
-    fireballs.forEach(f => { ctx.fillStyle = "#ff0"; ctx.beginPath(); ctx.arc(f.x+5, f.y+5, 5, 0, Math.PI*2); ctx.fill(); });
+    fireballs.forEach(f => { ctx.fillStyle = "#ff0"; ctx.beginPath(); ctx.arc(f.x+5, f.y+5, 5, 0, 7); ctx.fill(); });
     
-    // Jogador
+    // JOGADOR
     ctx.drawImage(imgHero, player.x, player.y, player.w, player.h);
 
     ctx.restore();
 
-    // UI fixa
+    // UI
     ctx.fillStyle = "#fff"; ctx.font = "bold 16px Courier";
     ctx.fillText(`${playerName} | SCORE: ${score} | HP: ${player.hp}%`, 20, 30);
 
@@ -258,8 +284,7 @@ function draw() {
     requestAnimationFrame(draw);
 }
 
-// CONTROLES E START
-function shoot() { if(!isPaused) fireballs.push({ x: player.x+15, y: player.y+15, w: 10, h: 10, vx: player.dir*7 }); }
+// --- EVENTOS E CONTROLOS ---
 
 document.getElementById("startBtn").onclick = () => {
     playerName = document.getElementById("nameInput").value.toUpperCase() || "MARIO";
@@ -270,15 +295,24 @@ document.getElementById("startBtn").onclick = () => {
     draw();
 };
 
-window.addEventListener("keydown", e => { keys[e.code] = true; if(e.code === "KeyZ") shoot(); });
+window.addEventListener("keydown", e => { keys[e.code] = true; if(e.code === "KeyZ" || e.code === "KeyB") shoot(); });
 window.addEventListener("keyup", e => keys[e.code] = false);
 
-const setBtn = (id, k) => {
+// Touch Controls
+const handleTouch = (id, key) => {
     const el = document.getElementById(id);
-    el.addEventListener("touchstart", (e) => { e.preventDefault(); keys[k] = true; if(k === "KeyZ") shoot(); });
-    el.addEventListener("touchend", (e) => { e.preventDefault(); keys[k] = false; });
+    el.addEventListener("touchstart", (e) => { e.preventDefault(); keys[key] = true; if(key === "KeyZ") shoot(); });
+    el.addEventListener("touchend", (e) => { e.preventDefault(); keys[key] = false; });
 };
-setBtn("btnLeft", "ArrowLeft"); setBtn("btnRight", "ArrowRight"); setBtn("btnJump", "ArrowUp"); setBtn("btnShoot", "KeyZ");
+handleTouch("btnLeft", "ArrowLeft");
+handleTouch("btnRight", "ArrowRight");
+handleTouch("btnJump", "ArrowUp");
+handleTouch("btnShoot", "KeyZ");
+
+// REGISTO PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
+}
 </script>
 </body>
 </html>
