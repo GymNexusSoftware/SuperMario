@@ -1,31 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
-    <title>Super Mario - Edição Final Restaurada</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <title>Super Mario PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
     <style>
         body { margin: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: manipulation; }
-        canvas { border: 4px solid #333; image-rendering: pixelated; max-width: 95vw; max-height: 70vh; background: #5c94fc; display: none; }
+        canvas { border: 4px solid #333; image-rendering: pixelated; max-width: 95vw; max-height: 75vh; background: #5c94fc; display: none; }
         
-        /* POPUP RESTAURADO */
-        #namePopup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 4px solid #fff; padding: 30px; text-align: center; box-shadow: 8px 8px 0 #f0f, -8px -8px 0 #0ff; z-index: 1000; width: 280px; display: block; }
+        #namePopup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 4px solid #fff; padding: 30px; text-align: center; box-shadow: 8px 8px 0 #f0f, -8px -8px 0 #0ff; z-index: 1000; width: 280px; }
         #nameInput { padding: 10px; width: 80%; background: #111; border: 2px solid #0ff; color: #fff; font-family: inherit; font-size: 18px; text-align: center; text-transform: uppercase; margin: 15px 0; outline: none; }
-        #startBtn { padding: 12px 25px; background: #f0f; color: #fff; border: 2px solid #fff; font-family: inherit; font-weight: bold; cursor: pointer; text-transform: uppercase; box-shadow: 4px 4px 0 #000; }
+        #startBtn { padding: 12px 25px; background: #f0f; color: #fff; border: 2px solid #fff; font-family: inherit; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         
-        /* CONTROLOS */
-        .controls { display: none; justify-content: space-between; width: 95vw; padding: 15px; margin-top: 10px; }
-        .btn { width: 65px; height: 65px; background: #333; border: 3px solid #eee; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; box-shadow: 0 4px #000; }
-        .btn:active { transform: translateY(2px); box-shadow: 0 2px #000; background: #555; }
-        .d-pad, .actions { display: flex; gap: 15px; }
+        .controls { display: none; justify-content: space-between; width: 95vw; padding: 10px; margin-top: 5px; }
+        .btn { width: 70px; height: 70px; background: rgba(50,50,50,0.8); border: 3px solid #eee; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 24px; user-select: none; }
+        .d-pad, .actions { display: flex; gap: 20px; }
     </style>
 </head>
 <body>
 
     <div id="namePopup">
-        <h2 style="color: #ff0; margin: 0; text-shadow: 2px 2px #f00;">PLAYER ENTRY</h2>
-        <input type="text" id="nameInput" maxlength="10" placeholder="NOME">
+        <h2 style="color: #ff0; margin: 0;">MARIO PWA</h2>
+        <input type="text" id="nameInput" maxlength="10" placeholder="TEU NOME">
         <br>
-        <button id="startBtn">START GAME</button>
+        <button id="startBtn">JOGAR</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -36,6 +38,13 @@
     </div>
 
 <script>
+// REGISTO DO SERVICE WORKER (PWA)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => console.log('PWA Ativo!'));
+    });
+}
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = 600; canvas.height = 350;
@@ -45,12 +54,10 @@ let currentLevel = 0, score = 0, cameraX = 0, playerName = "NOME";
 let fireballs = [], lastFireTime = 0, gameTime = 400, lastTimeUpdate = Date.now();
 let isPaused = false;
 
-// IMAGENS
 const imgHero = new Image(); imgHero.src = 'heroi.png';
 const imgMonstro = new Image(); imgMonstro.src = 'monstro1.png';
 const imgPlatSuspensas = new Image(); imgPlatSuspensas.src = 'plataforma.jpg';
 
-// GERAÇÃO DE NÍVEIS
 const allLevels = [];
 for (let n = 0; n < 100; n++) {
     let newLevel = [1,1,1,1,1];
@@ -86,14 +93,9 @@ function resetPlayer(reason) {
         player.hp -= 25;
         if (player.hp <= 0) reason = "death";
     }
-
     if (reason === "death") { player.hp = 100; score = 0; currentLevel = 0; }
-    
-    player.x = 40; player.y = 100; player.velX = 0; player.velY = 0;
-    player.jumping = false; player.isInvincible = false;
-    cameraX = 0; fireballs = []; gameTime = 400; 
-    initMonsters();
-
+    player.x = 40; player.y = 100; player.velX = 0; player.velY = 0; player.jumping = false; player.isInvincible = false;
+    cameraX = 0; fireballs = []; gameTime = 400; initMonsters();
     isPaused = true;
     setTimeout(() => { isPaused = false; }, 1000);
 }
@@ -105,9 +107,8 @@ function shoot() {
     }
 }
 
-// EVENTOS
 document.getElementById("startBtn").onclick = function() {
-    playerName = document.getElementById("nameInput").value.toUpperCase() || "NOME";
+    playerName = document.getElementById("nameInput").value.toUpperCase() || "PLAYER";
     document.getElementById("namePopup").style.display = "none";
     canvas.style.display = "block";
     document.getElementById("gameControls").style.display = "flex";
@@ -128,46 +129,28 @@ setBtn("btnLeft", "ArrowLeft"); setBtn("btnRight", "ArrowRight"); setBtn("btnJum
 function update() {
     if (isPaused) return;
     if (Date.now() - lastTimeUpdate > 1000) { gameTime--; lastTimeUpdate = Date.now(); if(gameTime <= 0) resetPlayer("death"); }
-    
     if (keys["ArrowRight"]) { player.velX += 0.5; player.direction = 1; }
     else if (keys["ArrowLeft"]) { player.velX -= 0.5; player.direction = -1; }
     else player.velX *= 0.8;
-    
     player.velX = Math.max(-4.5, Math.min(4.5, player.velX));
     if (keys["ArrowUp"] && !player.jumping) { player.jumping = true; player.velY = -11; }
     player.velY += 0.5;
-    
     let level = allLevels[currentLevel];
     player.x += player.velX; player.y += player.velY;
-
     let tileX = Math.floor((player.x + player.width/2) / TILE_SIZE);
     let groundY = 1000;
     if (level[tileX] === 1) groundY = canvas.height - TILE_SIZE;
     else if (level[tileX] === 3) groundY = canvas.height - TILE_SIZE * 2;
     else if (level[tileX] === 4) groundY = canvas.height - TILE_SIZE * 3;
     else if (level[tileX] === 6) groundY = canvas.height - TILE_SIZE * 4;
-
     if (player.y + player.height > groundY && player.velY >= 0) { player.y = groundY - player.height; player.velY = 0; player.jumping = false; }
     if (player.y > canvas.height) { resetPlayer("fall"); return; }
-    
     cameraX = Math.max(0, player.x - 150);
-
-    // BALAS
     for (let i = fireballs.length - 1; i >= 0; i--) {
         let f = fireballs[i]; f.x += f.velX;
         if (f.x < cameraX || f.x > cameraX + canvas.width) { fireballs.splice(i, 1); continue; }
-        let fTileX = Math.floor((f.x + (f.velX > 0 ? f.width : 0)) / TILE_SIZE);
-        let fTileY = level[fTileX];
-        let objH = (fTileY === 3 ? 2 : fTileY === 4 ? 3 : fTileY === 1 ? 1 : 0);
-        if (objH > 0 && f.y + f.height > canvas.height - (objH * TILE_SIZE)) { fireballs.splice(i, 1); continue; }
-        monsters.forEach(m => {
-            if (m.alive && f.x < m.x + m.width && f.x + f.width > m.x && f.y < m.y + m.height && f.y + f.height > m.y) {
-                m.alive = false; score += 200; fireballs.splice(i, 1);
-            }
-        });
+        monsters.forEach(m => { if (m.alive && f.x < m.x + m.width && f.x + f.width > m.x && f.y < m.y + m.height && f.y + f.height > m.y) { m.alive = false; score += 200; fireballs.splice(i, 1); } });
     }
-
-    // MONSTROS
     monsters.forEach(m => {
         if (m.alive) {
             m.x += m.dir;
@@ -179,7 +162,6 @@ function update() {
             }
         }
     });
-
     if (player.isInvincible) { player.timerInv--; if (player.timerInv <= 0) player.isInvincible = false; }
     if (level[tileX] === 2) { score += 1000; currentLevel++; resetPlayer("win"); }
 }
@@ -188,57 +170,35 @@ function draw() {
     if (isPaused) {
         ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#fff"; ctx.font = "30px Courier"; ctx.textAlign = "center";
-        ctx.fillText(`WORLD 1-${currentLevel+1}`, canvas.width/2, canvas.height/2);
+        ctx.fillText(`MUNDO 1-${currentLevel+1}`, canvas.width/2, canvas.height/2);
         ctx.textAlign = "left"; return;
     }
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save(); ctx.translate(-cameraX, 0);
     const level = allLevels[currentLevel];
-
-    // FUNDO
     for(let m=0; m < level.length; m += 20) {
         let drawX = m * TILE_SIZE;
-        ctx.fillStyle = "#4caf50"; ctx.beginPath();
-        ctx.moveTo(drawX - 60, canvas.height - TILE_SIZE); ctx.lineTo(drawX + 40, canvas.height - 130); ctx.lineTo(drawX + 140, canvas.height - TILE_SIZE); ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.6)"; 
-        ctx.beginPath(); ctx.arc(drawX + 80, 50, 15, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(drawX + 100, 50, 20, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#4caf50"; ctx.beginPath(); ctx.moveTo(drawX - 60, canvas.height - TILE_SIZE); ctx.lineTo(drawX + 40, canvas.height - 130); ctx.lineTo(drawX + 140, canvas.height - TILE_SIZE); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.beginPath(); ctx.arc(drawX + 80, 50, 15, 0, Math.PI*2); ctx.fill();
     }
-
-    // CENÁRIO
     level.forEach((tile, i) => {
         if (tile === 0) return;
-        let x = i * TILE_SIZE;
-        let h = (tile === 3 ? 2 : tile === 4 ? 3 : 1);
+        let x = i * TILE_SIZE; let h = (tile === 3 ? 2 : tile === 4 ? 3 : 1);
         let y = (tile === 6) ? canvas.height - (4 * TILE_SIZE) : canvas.height - (h * TILE_SIZE);
-        if (tile === 1 || tile === 3 || tile === 4) {
-            ctx.fillStyle = "#8b4513"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE);
-            ctx.fillStyle = "#2e7d32"; ctx.fillRect(x, y, TILE_SIZE, 5);
-        } else if (tile === 6) {
-            if (imgPlatSuspensas.complete) ctx.drawImage(imgPlatSuspensas, x, y, TILE_SIZE, TILE_SIZE);
-            else { ctx.fillStyle = "#ff0"; ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE); }
-        } else if (tile === 2) {
-            ctx.fillStyle = "#fff"; ctx.fillRect(x+10, canvas.height-150, 5, 150);
-            ctx.fillStyle = "#f0f"; ctx.fillRect(x+15, canvas.height-150, 20, 15);
-        }
+        if (tile === 1 || tile === 3 || tile === 4) { ctx.fillStyle = "#8b4513"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE); ctx.fillStyle = "#2e7d32"; ctx.fillRect(x, y, TILE_SIZE, 5); }
+        else if (tile === 6) { if (imgPlatSuspensas.complete) ctx.drawImage(imgPlatSuspensas, x, y, TILE_SIZE, TILE_SIZE); else { ctx.fillStyle = "#ff0"; ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE); } }
+        else if (tile === 2) { ctx.fillStyle = "#fff"; ctx.fillRect(x+10, canvas.height-150, 5, 150); ctx.fillStyle = "#f0f"; ctx.fillRect(x+15, canvas.height-150, 20, 15); }
     });
-
     monsters.forEach(m => { if(m.alive) ctx.drawImage(imgMonstro, m.x, m.y, m.width, m.height); });
     fireballs.forEach(f => { ctx.fillStyle = "#ffeb3b"; ctx.beginPath(); ctx.arc(f.x+6, f.y+6, 6, 0, Math.PI*2); ctx.fill(); });
-    
     if (!player.isInvincible || Math.floor(Date.now() / 100) % 2 === 0) ctx.drawImage(imgHero, player.x, player.y, player.width, player.height);
     ctx.restore();
-    
-    // UI
-    ctx.fillStyle = "#fff"; ctx.font = "bold 16px Courier";
-    ctx.fillText(`${playerName}: ${score}`, 20, 30);
-    ctx.fillText(`WORLD 1-${currentLevel+1}`, 230, 30);
-    ctx.fillText(`TIME: ${gameTime}`, 480, 30);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 16px Courier"; ctx.fillText(`${playerName}: ${score}`, 20, 30);
+    ctx.fillText(`MUNDO 1-${currentLevel+1}`, 230, 30);
+    ctx.fillText(`TEMPO: ${gameTime}`, 480, 30);
     let hearts = ""; for(let h=0; h<player.hp/25; h++) hearts += "❤";
     ctx.fillStyle="#f00"; ctx.font = "bold 22px Courier"; ctx.fillText(hearts, 20, 60);
 }
-
 function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
 </script>
 </body>
