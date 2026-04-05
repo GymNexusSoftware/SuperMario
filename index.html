@@ -1,20 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Super Mario JS - Session Edition</title>
+    <title>Super Mario JS - Fixed Start</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { margin: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Courier New', Courier, monospace; color: white; }
-        canvas { border: 4px solid #333; image-rendering: pixelated; max-width: 95vw; max-height: 70vh; display: none; }
+        #gameCanvas { border: 4px solid #333; image-rendering: pixelated; max-width: 95vw; max-height: 70vh; display: none; background: #5c94fc; }
         
-        #menu { text-align: center; background: #222; padding: 20px; border: 4px solid #fff; width: 300px; }
+        #menu { text-align: center; background: #222; padding: 20px; border: 4px solid #fff; width: 300px; display: block; }
         input { padding: 10px; width: 80%; margin: 10px 0; border: 2px solid #fff; background: #000; color: #fff; text-align: center; font-family: inherit; }
-        button { padding: 10px 20px; background: #f00; color: #fff; border: none; cursor: pointer; font-family: inherit; font-weight: bold; }
+        button { padding: 10px 20px; background: #f00; color: #fff; border: none; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 1.2rem; }
+        button:hover { background: #ff4444; }
         .high-scores { font-size: 12px; margin-top: 15px; text-align: left; border-top: 1px solid #555; padding-top: 10px; }
         
         .controls { display: none; justify-content: space-between; width: 95vw; padding: 15px; margin-top: 10px; }
-        .btn { width: 65px; height: 65px; background: #333; border: 3px solid #eee; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; box-shadow: 0 4px #000; }
-        .btn:active { transform: translateY(2px); box-shadow: 0 2px #000; background: #555; }
+        .btn { width: 65px; height: 65px; background: #333; border: 3px solid #eee; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; }
+        .btn:active { background: #666; transform: scale(0.9); }
         .d-pad, .actions { display: flex; gap: 15px; }
     </style>
 </head>
@@ -23,12 +24,12 @@
     <div id="menu">
         <h1>SUPER MARIO JS</h1>
         <p>INTRODUZ O TEU NOME:</p>
-        <input type="text" id="playerName" maxlength="10" placeholder="JOGADOR 1">
-        <br>
+        <input type="text" id="playerNameInput" maxlength="10" placeholder="JOGADOR 1">
+        <br><br>
         <button onclick="startGame()">JOGAR</button>
         <div class="high-scores" id="highScoreList">
             <strong>TOP SCORES (ESTA SESSÃO):</strong><br>
-            <span>Nenhum score ainda.</span>
+            <span id="scoreEntries">Nenhum score ainda.</span>
         </div>
     </div>
 
@@ -44,7 +45,6 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = 600; canvas.height = 350;
 
-// Variáveis de Sessão (Limpam ao fechar a página)
 let gameState = "MENU";
 let playerName = "MARIO";
 let sessionHighScores = []; 
@@ -55,45 +55,11 @@ let gameTime = 400;
 let lastTimeUpdate = Date.now();
 let cameraX = 0;
 
-function updateHighScoreDisplay() {
-    let html = "<strong>TOP SCORES (ESTA SESSÃO):</strong><br>";
-    if (sessionHighScores.length === 0) html += "Nenhum score ainda.";
-    sessionHighScores.slice(0, 5).forEach((s, i) => {
-        html += `${i+1}. ${s.name} - ${s.score}<br>`;
-    });
-    document.getElementById("highScoreList").innerHTML = html;
-}
+// Configuração do Jogador
+const player = { x: 40, y: 100, width: 20, height: 26, velX: 0, velY: 0, jumping: false, direction: 1, hp: 100, isInvincible: false, invincibilityTimer: 0 };
+const keys = {};
 
-function saveSessionScore() {
-    sessionHighScores.push({ name: playerName, score: score });
-    sessionHighScores.sort((a, b) => b.score - a.score);
-}
-
-function startGame() {
-    const inputName = document.getElementById("playerName").value.toUpperCase();
-    playerName = inputName || "JOGADOR 1";
-    
-    document.getElementById("menu").style.display = "none";
-    canvas.style.display = "block";
-    document.getElementById("gameControls").style.display = "flex";
-    
-    gameState = "PLAYING";
-    score = 0;
-    currentLevel = 0;
-    resetPlayer();
-    requestAnimationFrame(gameLoop);
-}
-
-function backToMenu() {
-    gameState = "MENU";
-    saveSessionScore();
-    updateHighScoreDisplay();
-    canvas.style.display = "none";
-    document.getElementById("gameControls").style.display = "none";
-    document.getElementById("menu").style.display = "block";
-}
-
-// GERADOR DE 100 NÍVEIS
+// Gerador de Níveis
 const allLevels = [];
 for (let n = 0; n < 100; n++) {
     let newLevel = [1,1,1,1,1];
@@ -123,24 +89,45 @@ function initGoombas() {
 
 let fireballs = [];
 let lastFireTime = 0;
-const player = { x: 40, y: 100, width: 20, height: 26, velX: 0, velY: 0, jumping: false, direction: 1, hp: 100, isInvincible: false, invincibilityTimer: 0 };
-const keys = {};
 
-window.addEventListener("keydown", e => { keys[e.code] = true; if (e.code === "KeyZ") shootFireball(); });
-window.addEventListener("keyup", e => keys[e.code] = false);
+function startGame() {
+    const inputVal = document.getElementById("playerNameInput").value.trim().toUpperCase();
+    playerName = inputVal || "JOGADOR 1";
+    
+    document.getElementById("menu").style.display = "none";
+    canvas.style.display = "block";
+    document.getElementById("gameControls").style.display = "flex";
+    
+    gameState = "PLAYING";
+    score = 0;
+    currentLevel = 0;
+    resetPlayer();
+    
+    // Iniciar o Loop
+    gameLoop();
+}
 
-const setupBtn = (id, key) => {
-    const el = document.getElementById(id);
-    el.addEventListener("touchstart", (e) => { e.preventDefault(); keys[key] = true; if(key === "KeyZ") shootFireball(); });
-    el.addEventListener("touchend", (e) => { e.preventDefault(); keys[key] = false; });
-};
-setupBtn("btnLeft", "ArrowLeft"); setupBtn("btnRight", "ArrowRight"); setupBtn("btnJump", "ArrowUp"); setupBtn("btnShoot", "KeyZ");
+function backToMenu() {
+    gameState = "MENU";
+    sessionHighScores.push({ name: playerName, score: score });
+    sessionHighScores.sort((a, b) => b.score - a.score);
+    
+    let html = "";
+    sessionHighScores.slice(0, 5).forEach((s, i) => {
+        html += `${i+1}. ${s.name} - ${s.score}<br>`;
+    });
+    document.getElementById("scoreEntries").innerHTML = html;
+
+    canvas.style.display = "none";
+    document.getElementById("gameControls").style.display = "none";
+    document.getElementById("menu").style.display = "block";
+}
 
 function resetPlayer(keepHP = false) {
     if (keepHP) {
         if (currentLevel > 0 && currentLevel % 3 === 0) player.hp = Math.min(100, player.hp + 25);
     } else {
-        if (gameState === "PLAYING") backToMenu(); // Volta ao menu ao morrer
+        if (gameState === "PLAYING" && player.hp <= 0) { backToMenu(); return; }
         player.hp = 100;
     }
     player.x = 40; player.y = 100; player.velX = 0; player.velY = 0;
@@ -155,6 +142,18 @@ function shootFireball() {
     }
 }
 
+// Controlos
+window.addEventListener("keydown", e => keys[e.code] = true);
+window.addEventListener("keyup", e => keys[e.code] = false);
+document.addEventListener("keydown", e => { if(e.code === "KeyZ" && gameState === "PLAYING") shootFireball(); });
+
+const setupBtn = (id, key) => {
+    const el = document.getElementById(id);
+    el.addEventListener("touchstart", (e) => { e.preventDefault(); keys[key] = true; if(key === "KeyZ") shootFireball(); });
+    el.addEventListener("touchend", (e) => { e.preventDefault(); keys[key] = false; });
+};
+setupBtn("btnLeft", "ArrowLeft"); setupBtn("btnRight", "ArrowRight"); setupBtn("btnJump", "ArrowUp"); setupBtn("btnShoot", "KeyZ");
+
 function update() {
     let gravity = (currentLevel >= 40 && currentLevel < 60) ? 0.2 : 0.5;
     let friction = (currentLevel >= 60 && currentLevel < 80) ? 0.97 : 0.8;
@@ -165,17 +164,13 @@ function update() {
     else if (keys["ArrowLeft"]) { player.velX -= (friction === 0.97 ? 0.15 : 0.5); player.direction = -1; }
     else { player.velX *= friction; }
     
-    if (player.velX > 4.5) player.velX = 4.5;
-    if (player.velX < -4.5) player.velX = -4.5;
+    player.velX = Math.max(-4.5, Math.min(4.5, player.velX));
 
-    if ((keys["Space"] || keys["ArrowUp"]) && !player.jumping) { player.jumping = true; player.velY = (currentLevel >= 40 && currentLevel < 60) ? -7 : -11; }
+    if (keys["ArrowUp"] && !player.jumping) { player.jumping = true; player.velY = (currentLevel >= 40 && currentLevel < 60) ? -7 : -11; }
     player.velY += gravity;
     
-    let nextX = player.x + player.velX;
     let level = allLevels[currentLevel];
-    let tileSide = Math.floor((nextX + (player.velX > 0 ? player.width : 0)) / TILE_SIZE);
-    
-    if (level[tileSide] === 3 && player.y + player.height > canvas.height - TILE_SIZE * 2 || level[tileSide] === 4 && player.y + player.height > canvas.height - TILE_SIZE * 3) { player.velX = 0; } else { player.x = nextX; }
+    player.x += player.velX;
     player.y += player.velY;
 
     let tileIndex = Math.floor((player.x + player.width / 2) / TILE_SIZE);
@@ -189,88 +184,48 @@ function update() {
     if (player.y + player.height > groundY && player.velY >= 0) { player.y = groundY - player.height; player.velY = 0; player.jumping = false; }
     if (player.y > canvas.height) resetPlayer();
     if (currentLevel >= 80 && groundType === 0 && player.y > canvas.height - 35) resetPlayer();
-    if (player.x < 0) player.x = 0;
-
-    cameraX = player.x - canvas.width / 4; 
-    if (cameraX < 0) cameraX = 0;
-    let maxScroll = (level.length * TILE_SIZE) - canvas.width;
-    if (cameraX > maxScroll) cameraX = maxScroll;
-
-    if (player.isInvincible) { player.invincibilityTimer--; if (player.invincibilityTimer <= 0) player.isInvincible = false; }
+    
+    cameraX = Math.max(0, player.x - 150);
 
     goombas.forEach(g => {
         if (g.alive) {
-            let nextGX = g.x + g.dir;
-            let gTile = Math.floor((nextGX + (g.dir > 0 ? g.width : 0)) / TILE_SIZE);
-            if (level[gTile] >= 3 || nextGX < 0 || level[gTile] === 0) g.dir *= -1; else g.x = nextGX;
+            g.x += g.dir;
             if (player.x < g.x + g.width && player.x + player.width > g.x && player.y < g.y + g.height && player.y + player.height > g.y) {
-                if (player.velY > 0 && player.y + player.height < g.y + 12) { g.alive = false; score += 100; player.velY = -7; } 
-                else if (!player.isInvincible) { player.hp -= 25; player.isInvincible = true; player.invincibilityTimer = 70; player.velY = -4; if (player.hp <= 0) resetPlayer(); }
+                if (player.velY > 0) { g.alive = false; score += 100; player.velY = -7; } 
+                else if (!player.isInvincible) { player.hp -= 25; player.isInvincible = true; player.invincibilityTimer = 70; if (player.hp <= 0) resetPlayer(); }
             }
         }
     });
 
-    for (let i = fireballs.length - 1; i >= 0; i--) {
-        let fb = fireballs[i]; fb.x += fb.velX;
-        let fbTileX = Math.floor(fb.x / TILE_SIZE);
-        if (level[fbTileX] >= 1 && level[fbTileX] !== 5 && fb.y + fb.height > canvas.height - (level[fbTileX] === 1 ? TILE_SIZE : (level[fbTileX] === 3 ? TILE_SIZE*2 : TILE_SIZE*3))) { fireballs.splice(i, 1); continue; }
-        goombas.forEach(g => { if (g.alive && fb.x < g.x + g.width && fb.x + fb.width > g.x && fb.y < g.y + g.height && fb.y + fb.height > g.y) { g.alive = false; fireballs.splice(i, 1); score += 100; } });
-        if (fb.x > cameraX + canvas.width || fb.x < cameraX) fireballs.splice(i, 1);
-    }
-
+    if (player.isInvincible) { player.invincibilityTimer--; if (player.invincibilityTimer <= 0) player.isInvincible = false; }
     if (level[tileIndex] === 2) { score += 1000; currentLevel++; resetPlayer(true); }
 }
 
 function draw() {
-    let bgColor = "#5c94fc", tCol = "#8b4513", gCol = "#228B22";
-    if (currentLevel >= 20) { bgColor = "#000033"; tCol = "#4444aa"; gCol = "#0000ff"; }
-    if (currentLevel >= 40) { bgColor = "#0055ff"; tCol = "#0033aa"; gCol = "#00ffff"; }
-    if (currentLevel >= 60) { bgColor = "#ccffff"; tCol = "#ffffff"; gCol = "#00ffff"; }
-    if (currentLevel >= 80) { bgColor = "#220000"; tCol = "#440000"; gCol = "#ff4400"; }
-    
-    canvas.style.background = bgColor;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.save(); 
-    ctx.translate(-cameraX, 0);
-
+    ctx.save(); ctx.translate(-cameraX, 0);
     const level = allLevels[currentLevel];
     level.forEach((tile, i) => {
         let x = i * TILE_SIZE;
-        if (x + TILE_SIZE < cameraX || x > cameraX + canvas.width) return;
-        if (tile === 1) { ctx.fillStyle = tCol; ctx.fillRect(x, canvas.height - TILE_SIZE, TILE_SIZE, TILE_SIZE); }
-        else if (tile === 3 || tile === 4) { 
-            let h = tile === 3 ? 2 : 3;
-            ctx.fillStyle = tCol; ctx.fillRect(x, canvas.height - (TILE_SIZE * h), TILE_SIZE, TILE_SIZE * h); 
-            ctx.fillStyle = gCol; ctx.fillRect(x, canvas.height - (TILE_SIZE * h), TILE_SIZE, 6);
-        }
-        else if (tile === 5) { ctx.fillStyle = "#ff0"; ctx.fillRect(x, canvas.height - (TILE_SIZE * 4), TILE_SIZE, 10); }
-        else if (tile === 0 && currentLevel >= 80) { ctx.fillStyle = "#ff4400"; ctx.fillRect(x, canvas.height - 15, TILE_SIZE, 15); }
+        if (tile === 1) { ctx.fillStyle = "#8b4513"; ctx.fillRect(x, canvas.height - TILE_SIZE, TILE_SIZE, TILE_SIZE); }
         else if (tile === 2) { ctx.fillStyle = "#f0f"; ctx.fillRect(x, canvas.height - 200, 15, 200); }
+        else if (tile >= 3) { ctx.fillStyle = "#8b4513"; ctx.fillRect(x, canvas.height - (tile-1)*TILE_SIZE, TILE_SIZE, (tile-1)*TILE_SIZE); }
     });
-
-    goombas.forEach(g => { if(g.alive) { ctx.fillStyle = "#8b4513"; ctx.fillRect(g.x, g.y, g.width, g.height); }});
-    fireballs.forEach(fb => { ctx.fillStyle = "#ff8c00"; ctx.fillRect(fb.x, fb.y, fb.width, fb.height); });
-    
-    if (!player.isInvincible || Math.floor(Date.now() / 100) % 2 === 0) { 
-        ctx.fillStyle = "#ff0000"; 
-        ctx.fillRect(player.x, player.y, player.width, player.height); 
-    }
+    goombas.forEach(g => { if(g.alive) { ctx.fillStyle = "#440"; ctx.fillRect(g.x, g.y, g.width, g.height); }});
+    if (!player.isInvincible || Math.floor(Date.now() / 100) % 2 === 0) { ctx.fillStyle = "#f00"; ctx.fillRect(player.x, player.y, player.width, player.height); }
     ctx.restore();
 
-    ctx.fillStyle = "#fff"; ctx.font = "bold 16px 'Courier New'";
-    ctx.fillText(`${playerName} ${score.toString().padStart(6, '0')}`, 20, 30);
-    ctx.fillText(`WORLD 1-${currentLevel+1}`, 250, 30);
-    ctx.fillText(`TIME ${gameTime}`, 500, 30);
-    let hearts = ""; for(let h=0; h<player.hp/25; h++) hearts += "❤"; ctx.fillStyle="#f00"; ctx.fillText(hearts, 20, 55);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 16px Courier";
+    ctx.fillText(`${playerName} ${score}`, 20, 30);
+    ctx.fillText(`W 1-${currentLevel+1}`, 250, 30);
+    ctx.fillText(`❤️ ${player.hp}%`, 20, 55);
 }
 
 function gameLoop() {
-    if (gameState === "PLAYING") {
-        update();
-        draw();
-        requestAnimationFrame(gameLoop);
-    }
+    if (gameState !== "PLAYING") return;
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
 }
 </script>
 </body>
