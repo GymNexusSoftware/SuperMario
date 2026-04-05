@@ -7,10 +7,12 @@
         body { margin: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: manipulation; }
         canvas { border: 4px solid #333; image-rendering: pixelated; max-width: 95vw; max-height: 70vh; background: #5c94fc; display: none; }
         
+        /* POPUP RESTAURADO */
         #namePopup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 4px solid #fff; padding: 30px; text-align: center; box-shadow: 8px 8px 0 #f0f, -8px -8px 0 #0ff; z-index: 1000; width: 280px; display: block; }
         #nameInput { padding: 10px; width: 80%; background: #111; border: 2px solid #0ff; color: #fff; font-family: inherit; font-size: 18px; text-align: center; text-transform: uppercase; margin: 15px 0; outline: none; }
         #startBtn { padding: 12px 25px; background: #f0f; color: #fff; border: 2px solid #fff; font-family: inherit; font-weight: bold; cursor: pointer; text-transform: uppercase; box-shadow: 4px 4px 0 #000; }
         
+        /* CONTROLOS */
         .controls { display: none; justify-content: space-between; width: 95vw; padding: 15px; margin-top: 10px; }
         .btn { width: 65px; height: 65px; background: #333; border: 3px solid #eee; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; box-shadow: 0 4px #000; }
         .btn:active { transform: translateY(2px); box-shadow: 0 2px #000; background: #555; }
@@ -43,10 +45,12 @@ let currentLevel = 0, score = 0, cameraX = 0, playerName = "NOME";
 let fireballs = [], lastFireTime = 0, gameTime = 400, lastTimeUpdate = Date.now();
 let isPaused = false;
 
+// IMAGENS
 const imgHero = new Image(); imgHero.src = 'heroi.png';
 const imgMonstro = new Image(); imgMonstro.src = 'monstro1.png';
 const imgPlatSuspensas = new Image(); imgPlatSuspensas.src = 'plataforma.jpg';
 
+// GERAÇÃO DE NÍVEIS
 const allLevels = [];
 for (let n = 0; n < 100; n++) {
     let newLevel = [1,1,1,1,1];
@@ -80,9 +84,10 @@ function resetPlayer(reason) {
     if (reason === "win") player.hp = Math.min(100, player.hp + 25);
     else if (reason === "fall") {
         player.hp -= 25;
+        if (player.hp <= 0) reason = "death";
     }
 
-    if (player.hp <= 0) { player.hp = 100; score = 0; currentLevel = 0; }
+    if (reason === "death") { player.hp = 100; score = 0; currentLevel = 0; }
     
     player.x = 40; player.y = 100; player.velX = 0; player.velY = 0;
     player.jumping = false; player.isInvincible = false;
@@ -100,6 +105,7 @@ function shoot() {
     }
 }
 
+// EVENTOS
 document.getElementById("startBtn").onclick = function() {
     playerName = document.getElementById("nameInput").value.toUpperCase() || "NOME";
     document.getElementById("namePopup").style.display = "none";
@@ -123,7 +129,6 @@ function update() {
     if (isPaused) return;
     if (Date.now() - lastTimeUpdate > 1000) { gameTime--; lastTimeUpdate = Date.now(); if(gameTime <= 0) resetPlayer("death"); }
     
-    // INPUT
     if (keys["ArrowRight"]) { player.velX += 0.5; player.direction = 1; }
     else if (keys["ArrowLeft"]) { player.velX -= 0.5; player.direction = -1; }
     else player.velX *= 0.8;
@@ -133,49 +138,28 @@ function update() {
     player.velY += 0.5;
     
     let level = allLevels[currentLevel];
+    player.x += player.velX; player.y += player.velY;
 
-    // COLISÃO HORIZONTAL (BLOQUEIO DE PAREDES)
-    let nextX = player.x + player.velX;
-    let checkX = player.direction === 1 ? nextX + player.width : nextX;
-    let tileSide = Math.floor(checkX / TILE_SIZE);
-    let sideType = level[tileSide];
-    let sideH = (sideType === 3 ? 2 : sideType === 4 ? 3 : sideType === 1 ? 1 : 0);
-    let sideTopY = canvas.height - (sideH * TILE_SIZE);
-
-    if (sideH > 0 && player.y + player.height > sideTopY + 5) {
-        player.velX = 0; 
-    } else {
-        player.x = nextX;
-    }
-
-    // COLISÃO VERTICAL (GRAVIDADE E CHÃO)
-    player.y += player.velY;
     let tileX = Math.floor((player.x + player.width/2) / TILE_SIZE);
     let groundY = 1000;
-    let t = level[tileX];
-    let h = (t === 3 ? 2 : t === 4 ? 3 : t === 1 ? 1 : 1000);
-    if (t !== 0) groundY = canvas.height - (h * TILE_SIZE);
-    if (t === 6) groundY = canvas.height - (4 * TILE_SIZE);
+    if (level[tileX] === 1) groundY = canvas.height - TILE_SIZE;
+    else if (level[tileX] === 3) groundY = canvas.height - TILE_SIZE * 2;
+    else if (level[tileX] === 4) groundY = canvas.height - TILE_SIZE * 3;
+    else if (level[tileX] === 6) groundY = canvas.height - TILE_SIZE * 4;
 
-    if (player.y + player.height > groundY && player.velY >= 0) { 
-        player.y = groundY - player.height; 
-        player.velY = 0; 
-        player.jumping = false; 
-    }
-
+    if (player.y + player.height > groundY && player.velY >= 0) { player.y = groundY - player.height; player.velY = 0; player.jumping = false; }
     if (player.y > canvas.height) { resetPlayer("fall"); return; }
+    
     cameraX = Math.max(0, player.x - 150);
 
-    // BALAS (DETEÇÃO DE BLOCOS)
+    // BALAS
     for (let i = fireballs.length - 1; i >= 0; i--) {
         let f = fireballs[i]; f.x += f.velX;
         if (f.x < cameraX || f.x > cameraX + canvas.width) { fireballs.splice(i, 1); continue; }
-        
-        let fTileX = Math.floor(f.x / TILE_SIZE);
-        let fTileType = level[fTileX];
-        let fH = (fTileType === 3 ? 2 : fTileType === 4 ? 3 : fTileType === 1 ? 1 : 0);
-        if (fH > 0 && f.y + f.height > canvas.height - (fH * TILE_SIZE)) { fireballs.splice(i, 1); continue; }
-
+        let fTileX = Math.floor((f.x + (f.velX > 0 ? f.width : 0)) / TILE_SIZE);
+        let fTileY = level[fTileX];
+        let objH = (fTileY === 3 ? 2 : fTileY === 4 ? 3 : fTileY === 1 ? 1 : 0);
+        if (objH > 0 && f.y + f.height > canvas.height - (objH * TILE_SIZE)) { fireballs.splice(i, 1); continue; }
         monsters.forEach(m => {
             if (m.alive && f.x < m.x + m.width && f.x + f.width > m.x && f.y < m.y + m.height && f.y + f.height > m.y) {
                 m.alive = false; score += 200; fireballs.splice(i, 1);
@@ -246,6 +230,7 @@ function draw() {
     if (!player.isInvincible || Math.floor(Date.now() / 100) % 2 === 0) ctx.drawImage(imgHero, player.x, player.y, player.width, player.height);
     ctx.restore();
     
+    // UI
     ctx.fillStyle = "#fff"; ctx.font = "bold 16px Courier";
     ctx.fillText(`${playerName}: ${score}`, 20, 30);
     ctx.fillText(`WORLD 1-${currentLevel+1}`, 230, 30);
