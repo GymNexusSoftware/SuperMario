@@ -96,10 +96,27 @@ const ctx = canvas.getContext("2d");
 canvas.width = 350; canvas.height = 600;
 
 const TILE_SIZE = 25; 
-// SINCRONIZAÇÃO AGRESSIVA DE PROGRESSO
-let savedMax = parseInt(localStorage.getItem("marioMaxLevel")) || 0;
+
+// 1. GERAÇÃO DE NÍVEIS (VITAL: MOVIDO PARA O TOPO)
+const allLevels = [];
+for (let n = 0; n < 100; n++) {
+    let newLevel = [1,1,1,1,1];
+    for (let i = 0; i < 150 + (n * 3); i++) {
+        let rand = Math.random();
+        if (rand < 0.65) newLevel.push(1);
+        else if (rand < 0.75) newLevel.push(0);
+        else if (rand < 0.85) newLevel.push(3);
+        else if (rand < 0.90) newLevel.push(4);
+        else newLevel.push(1);
+    }
+    newLevel.push(2,1,1,1,1);
+    allLevels.push(newLevel);
+}
+
+// 2. SINCRONIZAÇÃO DE PROGRESSO
+let maxLevel = parseInt(localStorage.getItem("marioMaxLevel")) || 0;
 let savedCurrent = parseInt(localStorage.getItem("marioLevel")) || 0;
-let maxLevel = Math.max(savedMax, savedCurrent);
+maxLevel = Math.max(maxLevel, savedCurrent);
 localStorage.setItem("marioMaxLevel", maxLevel);
 
 let currentLevel = maxLevel; 
@@ -176,21 +193,6 @@ const imgPlatSuspensas = new Image(); imgPlatSuspensas.src = 'plataforma.jpg';
 const imgChaoNormal = new Image(); imgChaoNormal.src = 'chao_normal.jpg';
 const imgChaoNeve = new Image(); imgChaoNeve.src = 'chao_neve.jpg';
 
-// GERAÇÃO DE NÍVEIS
-const allLevels = [];
-for (let n = 0; n < 100; n++) {
-    let newLevel = [1,1,1,1,1];
-    for (let i = 0; i < 150 + (n * 3); i++) {
-        let rand = Math.random();
-        if (rand < 0.65) newLevel.push(1);
-        else if (rand < 0.75) newLevel.push(0);
-        else if (rand < 0.85) newLevel.push(3);
-        else if (rand < 0.92) newLevel.push(4);
-        else newLevel.push(6);
-    }
-    newLevel.push(1,1,1,2);
-    allLevels.push(newLevel);
-}
 
 let monsters = [];
 function initMonsters() {
@@ -477,6 +479,10 @@ function draw() {
     ctx.fillText(`TIME: ${gameTime}`, 250, 30);
     let hearts = ""; for(let h=0; h<player.hp/25; h++) hearts += "❤";
     ctx.fillStyle="#f00"; ctx.font = "bold 20px Courier"; ctx.fillText(hearts, 250, 60);
+
+    // DEBUG VISUAL DE ESTADO
+    ctx.fillStyle = isPaused ? "red" : "green";
+    ctx.beginPath(); ctx.arc(10, 10, 5, 0, Math.PI*2); ctx.fill();
 }
 
 function gameLoop() { 
