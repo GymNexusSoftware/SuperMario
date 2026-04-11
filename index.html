@@ -231,7 +231,7 @@ function resetPlayer(reason) {
         }
     }
     
-    player.x = player.checkpointX || 40; 
+    player.x = (reason === "start") ? 80 : (player.checkpointX || 40); 
     player.y = 100; player.velX = 0; player.velY = 0;
     player.jumping = false; player.isInvincible = false;
     cameraX = Math.max(0, player.x - 150); fireballs = []; gameTime = 400; 
@@ -438,7 +438,7 @@ function draw() {
                 ctx.fillStyle = "#f0f"; ctx.fillRect(x, y + 3, TILE_SIZE, 2);
             } else {
                 ctx.fillStyle = "#8b4513"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE);
-                ctx.fillStyle = "#2e7d32"; ctx.fillRect(x, y, TILE_SIZE, 5);
+                ctx.fillStyle = "#ff0000"; ctx.fillRect(x, y, TILE_SIZE, 5); // TOPO VERMELHO PARA TESTE
             }
         } else if (tile === 6) {
             if (imgPlatSuspensas.complete) ctx.drawImage(imgPlatSuspensas, x, y, TILE_SIZE, TILE_SIZE);
@@ -480,9 +480,11 @@ function draw() {
     let hearts = ""; for(let h=0; h<player.hp/25; h++) hearts += "❤";
     ctx.fillStyle="#f00"; ctx.font = "bold 20px Courier"; ctx.fillText(hearts, 250, 60);
 
-    // DEBUG VISUAL DE ESTADO
+    // DEBUG VISUAL DE ESTADO (Bolinha e Dados)
     ctx.fillStyle = isPaused ? "red" : "green";
     ctx.beginPath(); ctx.arc(10, 10, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "10px Arial";
+    ctx.fillText(`LVL:${currentLevel+1} P:${Math.round(player.x)} C:${Math.round(cameraX)}`, 20, 15);
 }
 
 function gameLoop() { 
