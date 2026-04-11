@@ -3,7 +3,7 @@
 <head>
     <title>Super Farioli</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json?v=10">
     <meta name="theme-color" content="#ff00ff">
     <!-- Apple PWA Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -26,8 +26,8 @@
         canvas { 
             border: 6px solid #0ff; 
             image-rendering: pixelated; 
-            max-width: 95vw; 
-            max-height: 70vh; 
+            max-width: 90vw; 
+            max-height: 85vh; 
             background: #5c94fc; 
             display: none; 
             box-shadow: 0 0 20px #0ff, 0 0 10px #f0f;
@@ -86,7 +86,7 @@
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-canvas.width = 600; canvas.height = 350;
+canvas.width = 350; canvas.height = 600;
 
 const TILE_SIZE = 25; 
 let currentLevel = 0, score = 0, cameraX = 0, playerName = "NOME";
@@ -215,7 +215,7 @@ function update() {
     // BALAS
     for (let i = fireballs.length - 1; i >= 0; i--) {
         let f = fireballs[i]; f.x += f.velX;
-        if (f.x < cameraX || f.x > cameraX + canvas.width) { fireballs.splice(i, 1); continue; }
+        if (f.x < cameraX - 100 || f.x > cameraX + canvas.width + 100) { fireballs.splice(i, 1); continue; }
         let fTileX = Math.floor((f.x + (f.velX > 0 ? f.width : 0)) / TILE_SIZE);
         let fTileY = level[fTileX];
         let objH = (fTileY === 3 ? 2 : fTileY === 4 ? 3 : fTileY === 1 ? 1 : 0);
@@ -290,13 +290,13 @@ function draw() {
     if (!player.isInvincible || Math.floor(Date.now() / 100) % 2 === 0) ctx.drawImage(imgHero, player.x, player.y, player.width, player.height);
     ctx.restore();
     
-    // UI
-    ctx.fillStyle = "#fff"; ctx.font = "bold 16px Courier";
-    ctx.fillText(`${playerName}: ${score}`, 20, 30);
-    ctx.fillText(`WORLD 1-${currentLevel+1}`, 230, 30);
-    ctx.fillText(`TIME: ${gameTime}`, 480, 30);
+    // UI Ajustada para Vertical
+    ctx.fillStyle = "#fff"; ctx.font = "bold 14px Courier";
+    ctx.fillText(`${playerName}: ${score}`, 15, 30);
+    ctx.fillText(`WORLD 1-${currentLevel+1}`, 15, 55);
+    ctx.fillText(`TIME: ${gameTime}`, 250, 30);
     let hearts = ""; for(let h=0; h<player.hp/25; h++) hearts += "❤";
-    ctx.fillStyle="#f00"; ctx.font = "bold 22px Courier"; ctx.fillText(hearts, 20, 60);
+    ctx.fillStyle="#f00"; ctx.font = "bold 20px Courier"; ctx.fillText(hearts, 250, 60);
 }
 
 function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
@@ -304,7 +304,12 @@ function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
 // REGISTO PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW OK')).catch(err => console.log('SW ERRO', err));
+    navigator.serviceWorker.register('./sw.js?v=10').then(reg => {
+       if (localStorage.getItem('farioli_v') !== '10') {
+          reg.update(); localStorage.setItem('farioli_v', '10');
+       }
+       console.log('Farioli SW OK');
+    });
   });
 }
 </script>
