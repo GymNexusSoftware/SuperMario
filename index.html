@@ -112,7 +112,8 @@ function updateLevelButtons() {
     const area = document.getElementById("levelButtons"); 
     if (!area) return;
     area.innerHTML = "";
-    for (let i = 0; i <= maxLevel; i++) {
+    const totalLevels = Math.min(allLevels.length - 1, maxLevel);
+    for (let i = 0; i <= totalLevels; i++) {
         const btn = document.createElement("button");
         btn.innerText = `1-${i + 1}`;
         btn.style.cssText = "padding: 8px 10px; background: #111; color: #0ff; border: 2px solid #0ff; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 12px; min-width: 50px; transition: 0.2s;";
@@ -249,7 +250,10 @@ document.getElementById("startBtn").onclick = function() {
     document.getElementById("gameControls").style.display = "flex";
     document.getElementById("menuBtn").style.display = "block";
     resetPlayer("start");
-    if (!window.gameStarted) { gameLoop(); window.gameStarted = true; }
+    if (!window.gameStarted) { 
+        window.gameStarted = true;
+        gameLoop(); 
+    }
 };
 
 document.getElementById("menuBtn").onclick = () => {
@@ -353,11 +357,12 @@ function update() {
 }
 
 function draw() {
-    if (isPaused) {
+    const level = allLevels[currentLevel];
+    if (isPaused || !level) {
         ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#fff"; ctx.font = "30px Courier"; ctx.textAlign = "center";
         ctx.fillText(`WORLD 1-${currentLevel+1}`, canvas.width/2, canvas.height/2);
-        if (currentLevel > 0 || player.checkpointX > 40) {
+        if (currentLevel > 0 || (player && player.checkpointX > 40)) {
             ctx.fillStyle = "#0ff"; ctx.font = "bold 14px Courier";
             ctx.fillText("PROGRESSO CARREGADO", canvas.width/2, canvas.height/2 + 40);
         }
@@ -366,7 +371,6 @@ function draw() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save(); ctx.translate(-cameraX, 0);
-    const level = allLevels[currentLevel];
 
     // DEFINIÇÃO DE BIOMA (Ciclos de 20 níveis)
     let biome = "grass";
