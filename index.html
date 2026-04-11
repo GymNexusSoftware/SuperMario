@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Super Mario - Estável</title>
+    <title>Super Mario - Edição Final Restaurada</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { margin: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: manipulation; }
         canvas { border: 4px solid #333; image-rendering: pixelated; max-width: 95vw; max-height: 70vh; background: #5c94fc; display: none; }
+        
+        /* POPUP RESTAURADO */
         #namePopup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 4px solid #fff; padding: 30px; text-align: center; box-shadow: 8px 8px 0 #f0f, -8px -8px 0 #0ff; z-index: 1000; width: 280px; display: block; }
         #nameInput { padding: 10px; width: 80%; background: #111; border: 2px solid #0ff; color: #fff; font-family: inherit; font-size: 18px; text-align: center; text-transform: uppercase; margin: 15px 0; outline: none; }
         #startBtn { padding: 12px 25px; background: #f0f; color: #fff; border: 2px solid #fff; font-family: inherit; font-weight: bold; cursor: pointer; text-transform: uppercase; box-shadow: 4px 4px 0 #000; }
+        
+        /* CONTROLOS */
         .controls { display: none; justify-content: space-between; width: 95vw; padding: 15px; margin-top: 10px; }
         .btn { width: 65px; height: 65px; background: #333; border: 3px solid #eee; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; box-shadow: 0 4px #000; }
         .btn:active { transform: translateY(2px); box-shadow: 0 2px #000; background: #555; }
@@ -25,6 +29,7 @@
     </div>
 
     <canvas id="gameCanvas"></canvas>
+    
     <div class="controls" id="gameControls">
         <div class="d-pad"><div class="btn" id="btnLeft">←</div><div class="btn" id="btnRight">→</div></div>
         <div class="actions"><div class="btn" id="btnShoot" style="background: #a00;">B</div><div class="btn" id="btnJump" style="background: #a00;">A</div></div>
@@ -38,18 +43,18 @@ canvas.width = 600; canvas.height = 350;
 const TILE_SIZE = 25; 
 let currentLevel = 0, score = 0, cameraX = 0, playerName = "NOME";
 let fireballs = [], lastFireTime = 0, gameTime = 400, lastTimeUpdate = Date.now();
-let isPaused = true;
+let isPaused = false;
 
+// IMAGENS
 const imgHero = new Image(); imgHero.src = 'heroi.png';
 const imgMonstro = new Image(); imgMonstro.src = 'monstro1.png';
 const imgPlatSuspensas = new Image(); imgPlatSuspensas.src = 'plataforma.jpg';
-const imgChao = new Image(); imgChao.src = 'chao_normal.jpg';
-const imgChaoNeve = new Image(); imgChaoNeve.src = 'chao_neve.jpg';
 
+// GERAÇÃO DE NÍVEIS
 const allLevels = [];
-for (let n = 0; n < 20; n++) {
+for (let n = 0; n < 100; n++) {
     let newLevel = [1,1,1,1,1];
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < 150 + (n * 3); i++) {
         let rand = Math.random();
         if (rand < 0.65) newLevel.push(1);
         else if (rand < 0.75) newLevel.push(0);
@@ -62,120 +67,47 @@ for (let n = 0; n < 20; n++) {
 }
 
 let monsters = [];
+function initMonsters() {
+    monsters = [];
+    const level = allLevels[currentLevel];
+    for(let i=15; i<level.length - 10; i++) {
+        if(level[i] === 1 && Math.random() > 0.90) {
+            monsters.push({ x: i * TILE_SIZE, y: canvas.height - TILE_SIZE - 30, width: 30, height: 30, alive: true, dir: -1.8 });
+        }
+    }
+}
+
 const player = { x: 40, y: 100, width: 32, height: 44, velX: 0, velY: 0, jumping: false, direction: 1, hp: 100, isInvincible: false, timerInv: 0 };
 const keys = {};
 
-function initMonsters() {
-    monsters = [];
-    const level = allLevels[currentLevel] || allLevels[0];
-    for(let i=15; i<level.length - 10; i++) {
-        if(level[i] === 1 && Math.random() > 0.9) {
-            monsters.push({ x: i * TILE_SIZE, y: canvas.height - TILE_SIZE - 30, width: 30, height: 30, alive: true, dir: -1.5 });
-        }
-    }
-}
-
 function resetPlayer(reason) {
-    if (reason === "win") score += 1000;
-    else if (reason === "fall" || reason === "death") { player.hp = 100; if(reason === "death") score = 0; }
+    if (reason === "win") player.hp = Math.min(100, player.hp + 25);
+    else if (reason === "fall") {
+        player.hp -= 25;
+        if (player.hp <= 0) reason = "death";
+    }
+
+    if (reason === "death") { player.hp = 100; score = 0; currentLevel = 0; }
+    
     player.x = 40; player.y = 100; player.velX = 0; player.velY = 0;
     player.jumping = false; player.isInvincible = false;
-    cameraX = 0; fireballs = []; gameTime = 400;
+    cameraX = 0; fireballs = []; gameTime = 400; 
     initMonsters();
+
     isPaused = true;
-    setTimeout(() => isPaused = false, 1000);
+    setTimeout(() => { isPaused = false; }, 1000);
 }
 
-function update() {
-    if (isPaused) return;
-    if (Date.now() - lastTimeUpdate > 1000) { gameTime--; lastTimeUpdate = Date.now(); if(gameTime <= 0) resetPlayer("death"); }
-
-    if (keys["ArrowRight"]) { player.velX = 4.5; player.direction = 1; }
-    else if (keys["ArrowLeft"]) { player.velX = -4.5; player.direction = -1; }
-    else { player.velX = 0; }
-
-    if (keys["ArrowUp"] && !player.jumping) { player.jumping = true; player.velY = -11; }
-    player.velY += 0.5;
-
-    let level = allLevels[currentLevel] || allLevels[0];
-    
-    let oldX = player.x;
-    player.x += player.velX;
-    let tSide = level[Math.floor((player.velX > 0 ? player.x + player.width : player.x) / TILE_SIZE)];
-    let hW = (tSide === 1 ? 1 : tSide === 3 ? 2 : tSide === 4 ? 3 : 0);
-    if (hW > 0 && player.y + player.height > canvas.height - hW * TILE_SIZE + 5) { player.x = oldX; player.velX = 0; }
-
-    player.y += player.velY;
-    let tX = Math.floor((player.x + player.width/2)/TILE_SIZE);
-    let groundY = 1000;
-    if (level[tX] === 1) groundY = canvas.height - TILE_SIZE;
-    else if (level[tX] === 3) groundY = canvas.height - TILE_SIZE * 2;
-    else if (level[tX] === 4) groundY = canvas.height - TILE_SIZE * 3;
-    else if (level[tX] === 6 && player.velY >= 0 && player.y + player.height <= canvas.height - TILE_SIZE * 4 + 10) groundY = canvas.height - TILE_SIZE * 4;
-
-    if (player.y + player.height > groundY && player.velY >= 0) {
-        player.y = groundY - player.height;
-        player.velY = 0;
-        player.jumping = false;
+function shoot() {
+    if (Date.now() - lastFireTime > 300 && !isPaused) {
+        fireballs.push({ x: player.x + (player.direction === 1 ? player.width : -12), y: player.y + 18, width: 12, height: 12, velX: 8 * player.direction });
+        lastFireTime = Date.now();
     }
-
-    if (player.y > canvas.height) resetPlayer("fall");
-    cameraX = Math.max(0, player.x - 150);
-
-    monsters.forEach(m => {
-        if(m.alive) {
-            m.x += m.dir;
-            let mTile = level[Math.floor((m.x + (m.dir > 0 ? m.width : 0))/TILE_SIZE)];
-            if(!mTile || mTile >= 3) m.dir *= -1;
-            if (player.x < m.x + m.width && player.x + player.width > m.x && player.y < m.y + m.height && player.y + player.height > m.y) {
-                if (player.velY > 0) { m.alive = false; player.velY = -8; score += 100; }
-                else if (!player.isInvincible) { player.hp -= 25; player.isInvincible = true; player.timerInv = 60; if(player.hp <= 0) resetPlayer("death"); }
-            }
-        }
-    });
-
-    if (player.isInvincible) { player.timerInv--; if(player.timerInv <= 0) player.isInvincible = false; }
-    if (level[tX] === 2) { currentLevel++; resetPlayer("win"); }
 }
 
-function draw() {
-    if (isPaused) {
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#fff"; ctx.font = "24px Arial"; ctx.textAlign = "center";
-        ctx.fillText("WORLD 1-" + (currentLevel + 1), canvas.width/2, canvas.height/2);
-        ctx.textAlign = "left"; return;
-    }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save(); ctx.translate(-cameraX, 0);
-    let level = allLevels[currentLevel] || allLevels[0];
-    level.forEach((tile, i) => {
-        if (tile === 0) return;
-        let x = i * TILE_SIZE;
-        let h = (tile === 3 ? 2 : tile === 4 ? 3 : 1);
-        let y = (tile === 6) ? canvas.height - 4 * TILE_SIZE : canvas.height - h * TILE_SIZE;
-        let img = (currentLevel % 2 === 0) ? imgChao : imgChaoNeve;
-        if (tile === 1 || tile === 3 || tile === 4) {
-            if (img.complete) { for(let r=0; r<h; r++) ctx.drawImage(img, x, y + r*TILE_SIZE, TILE_SIZE, TILE_SIZE); }
-            else { ctx.fillStyle = "#8b4513"; ctx.fillRect(x, y, TILE_SIZE, h*TILE_SIZE); }
-            ctx.fillStyle = "#2e7d32"; ctx.fillRect(x, y, TILE_SIZE, 5);
-        } else if (tile === 6) {
-            if (imgPlatSuspensas.complete) ctx.drawImage(imgPlatSuspensas, x, y, TILE_SIZE, TILE_SIZE);
-            else { ctx.fillStyle = "#ff0"; ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE); }
-        } else if (tile === 2) {
-            ctx.fillStyle = "#fff"; ctx.fillRect(x+10, canvas.height-120, 5, 120);
-        }
-    });
-    monsters.forEach(m => { if(m.alive) ctx.drawImage(imgMonstro, m.x, m.y, m.width, m.height); });
-    if (!player.isInvincible || Math.floor(Date.now() / 100) % 2 === 0) ctx.drawImage(imgHero, player.x, player.y, player.width, player.height);
-    ctx.restore();
-    ctx.fillStyle = "#fff"; ctx.font = "16px Arial";
-    ctx.fillText("SCORE: " + score, 20, 30);
-    ctx.fillText("TIME: " + gameTime, 480, 30);
-}
-
-function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
-
+// EVENTOS
 document.getElementById("startBtn").onclick = function() {
+    playerName = document.getElementById("nameInput").value.toUpperCase() || "NOME";
     document.getElementById("namePopup").style.display = "none";
     canvas.style.display = "block";
     document.getElementById("gameControls").style.display = "flex";
@@ -183,15 +115,141 @@ document.getElementById("startBtn").onclick = function() {
     gameLoop();
 };
 
-window.addEventListener("keydown", e => keys[e.code] = true);
+window.addEventListener("keydown", e => { keys[e.code] = true; if(e.code === "KeyZ" || e.code === "KeyB") shoot(); });
 window.addEventListener("keyup", e => keys[e.code] = false);
 
 function setBtn(id, k) {
     const el = document.getElementById(id);
-    el.addEventListener("touchstart", (e) => { e.preventDefault(); keys[k] = true; });
+    el.addEventListener("touchstart", (e) => { e.preventDefault(); keys[k] = true; if(k === "KeyZ") shoot(); });
     el.addEventListener("touchend", (e) => { e.preventDefault(); keys[k] = false; });
 }
-setBtn("btnLeft", "ArrowLeft"); setBtn("btnRight", "ArrowRight"); setBtn("btnJump", "ArrowUp");
+setBtn("btnLeft", "ArrowLeft"); setBtn("btnRight", "ArrowRight"); setBtn("btnJump", "ArrowUp"); setBtn("btnShoot", "KeyZ");
+
+function update() {
+    if (isPaused) return;
+    if (Date.now() - lastTimeUpdate > 1000) { gameTime--; lastTimeUpdate = Date.now(); if(gameTime <= 0) resetPlayer("death"); }
+    
+    // MUDANÇA: Paragem instantânea
+    if (keys["ArrowRight"]) { player.velX = 4.5; player.direction = 1; }
+    else if (keys["ArrowLeft"]) { player.velX = -4.5; player.direction = -1; }
+    else { player.velX = 0; }
+    
+    if (keys["ArrowUp"] && !player.jumping) { player.jumping = true; player.velY = -11; }
+    player.velY += 0.5;
+    
+    let level = allLevels[currentLevel];
+    
+    // MUDANÇA: Colisão lateral para obrigar a saltar
+    let oldX = player.x;
+    player.x += player.velX;
+    let tS = level[Math.floor((player.velX > 0 ? player.x + player.width : player.x) / TILE_SIZE)];
+    let hW = (tS === 1 ? 1 : tS === 3 ? 2 : tS === 4 ? 3 : 0);
+    if (hW > 0 && player.y + player.height > canvas.height - hW * TILE_SIZE + 5) {
+        player.x = oldX; player.velX = 0;
+    }
+
+    player.y += player.velY;
+
+    let tileX = Math.floor((player.x + player.width/2) / TILE_SIZE);
+    let groundY = 1000;
+    if (level[tileX] === 1) groundY = canvas.height - TILE_SIZE;
+    else if (level[tileX] === 3) groundY = canvas.height - TILE_SIZE * 2;
+    else if (level[tileX] === 4) groundY = canvas.height - TILE_SIZE * 3;
+    else if (level[tileX] === 6) groundY = canvas.height - TILE_SIZE * 4;
+
+    if (player.y + player.height > groundY && player.velY >= 0) { player.y = groundY - player.height; player.velY = 0; player.jumping = false; }
+    if (player.y > canvas.height) { resetPlayer("fall"); return; }
+    
+    cameraX = Math.max(0, player.x - 150);
+
+    // BALAS
+    for (let i = fireballs.length - 1; i >= 0; i--) {
+        let f = fireballs[i]; f.x += f.velX;
+        if (f.x < cameraX || f.x > cameraX + canvas.width) { fireballs.splice(i, 1); continue; }
+        let fTileX = Math.floor((f.x + (f.velX > 0 ? f.width : 0)) / TILE_SIZE);
+        let fTileY = level[fTileX];
+        let objH = (fTileY === 3 ? 2 : fTileY === 4 ? 3 : fTileY === 1 ? 1 : 0);
+        if (objH > 0 && f.y + f.height > canvas.height - (objH * TILE_SIZE)) { fireballs.splice(i, 1); continue; }
+        monsters.forEach(m => {
+            if (m.alive && f.x < m.x + m.width && f.x + f.width > m.x && f.y < m.y + m.height && f.y + f.height > m.y) {
+                m.alive = false; score += 200; fireballs.splice(i, 1);
+            }
+        });
+    }
+
+    // MONSTROS
+    monsters.forEach(m => {
+        if (m.alive) {
+            m.x += m.dir;
+            let mTile = Math.floor((m.x + (m.dir > 0 ? m.width : 0)) / TILE_SIZE);
+            if(level[mTile] === 0 || level[mTile] >= 3) m.dir *= -1;
+            if (player.x < m.x + m.width && player.x + player.width > m.x && player.y < m.y + m.height && player.y + player.height > m.y) {
+                if (player.velY > 0 && player.y + player.height < m.y + m.height / 2) { m.alive = false; score += 100; player.velY = -7; }
+                else if (!player.isInvincible) { player.hp -= 25; player.isInvincible = true; player.timerInv = 60; if (player.hp <= 0) resetPlayer("death"); }
+            }
+        }
+    });
+
+    if (player.isInvincible) { player.timerInv--; if (player.timerInv <= 0) player.isInvincible = false; }
+    if (level[tileX] === 2) { score += 1000; currentLevel++; resetPlayer("win"); }
+}
+
+function draw() {
+    if (isPaused) {
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#fff"; ctx.font = "30px Courier"; ctx.textAlign = "center";
+        ctx.fillText(`WORLD 1-${currentLevel+1}`, canvas.width/2, canvas.height/2);
+        ctx.textAlign = "left"; return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save(); ctx.translate(-cameraX, 0);
+    const level = allLevels[currentLevel];
+
+    // FUNDO
+    for(let m=0; m < level.length; m += 20) {
+        let drawX = m * TILE_SIZE;
+        ctx.fillStyle = "#4caf50"; ctx.beginPath();
+        ctx.moveTo(drawX - 60, canvas.height - TILE_SIZE); ctx.lineTo(drawX + 40, canvas.height - 130); ctx.lineTo(drawX + 140, canvas.height - TILE_SIZE); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.6)"; 
+        ctx.beginPath(); ctx.arc(drawX + 80, 50, 15, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(drawX + 100, 50, 20, 0, Math.PI*2); ctx.fill();
+    }
+
+    // CENÁRIO
+    level.forEach((tile, i) => {
+        if (tile === 0) return;
+        let x = i * TILE_SIZE;
+        let h = (tile === 3 ? 2 : tile === 4 ? 3 : 1);
+        let y = (tile === 6) ? canvas.height - (4 * TILE_SIZE) : canvas.height - (h * TILE_SIZE);
+        if (tile === 1 || tile === 3 || tile === 4) {
+            ctx.fillStyle = "#8b4513"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE);
+            ctx.fillStyle = "#2e7d32"; ctx.fillRect(x, y, TILE_SIZE, 5);
+        } else if (tile === 6) {
+            if (imgPlatSuspensas.complete) ctx.drawImage(imgPlatSuspensas, x, y, TILE_SIZE, TILE_SIZE);
+            else { ctx.fillStyle = "#ff0"; ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE); }
+        } else if (tile === 2) {
+            ctx.fillStyle = "#fff"; ctx.fillRect(x+10, canvas.height-150, 5, 150);
+            ctx.fillStyle = "#f0f"; ctx.fillRect(x+15, canvas.height-150, 20, 15);
+        }
+    });
+
+    monsters.forEach(m => { if(m.alive) ctx.drawImage(imgMonstro, m.x, m.y, m.width, m.height); });
+    fireballs.forEach(f => { ctx.fillStyle = "#ffeb3b"; ctx.beginPath(); ctx.arc(f.x+6, f.y+6, 6, 0, Math.PI*2); ctx.fill(); });
+    
+    if (!player.isInvincible || Math.floor(Date.now() / 100) % 2 === 0) ctx.drawImage(imgHero, player.x, player.y, player.width, player.height);
+    ctx.restore();
+    
+    // UI
+    ctx.fillStyle = "#fff"; ctx.font = "bold 16px Courier";
+    ctx.fillText(`${playerName}: ${score}`, 20, 30);
+    ctx.fillText(`WORLD 1-${currentLevel+1}`, 230, 30);
+    ctx.fillText(`TIME: ${gameTime}`, 480, 30);
+    let hearts = ""; for(let h=0; h<player.hp/25; h++) hearts += "❤";
+    ctx.fillStyle="#f00"; ctx.font = "bold 22px Courier"; ctx.fillText(hearts, 20, 60);
+}
+
+function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
 </script>
 </body>
 </html>
