@@ -78,7 +78,7 @@
             <p style="color: #fff; font-size: 14px; margin: 0 0 10px 0; letter-spacing: 1px;">LEVEL SELECT:</p>
             <div id="levelButtons" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 80px; overflow-y: auto;"></div>
         </div>
-        <button id="startBtn">START GAME</button>
+        <button id="startBtn" style="background:#0f0; color:#000; padding:15px 30px; font-weight:bold; border:none; cursor:pointer;">START GAME (v30)</button>
         <br><br>
         <button id="installBtn" style="display:none; padding:10px 20px; background:#0ff; color:#000; border:2px solid #fff; font-family:inherit; font-weight:bold; cursor:pointer; text-transform:uppercase; box-shadow:4px 4px 0 #000;">DOWNLOAD APP</button>
     </div>
@@ -493,16 +493,16 @@ function gameLoop() {
     if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Forçar limpeza se versão for antiga
-    if (localStorage.getItem('farioli_v') !== '25') {
+    if (localStorage.getItem('farioli_v') !== '30') {
       navigator.serviceWorker.getRegistrations().then(regs => {
         for(let reg of regs) reg.unregister();
-        localStorage.setItem('farioli_v', '25');
+        localStorage.setItem('farioli_v', '30');
         window.location.reload(true);
       });
     }
 
-    navigator.serviceWorker.register('./sw-v20.js?v=25').then(reg => {
-       console.log('Farioli v25 OK');
+    navigator.serviceWorker.register('./sw-v30.js?v=30').then(reg => {
+       console.log('Farioli v30 OK');
     });
   });
 }
