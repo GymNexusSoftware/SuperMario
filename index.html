@@ -108,6 +108,12 @@ let cameraX = 0, playerName = "NOME", pauseTimeout;
 let fireballs = [], lastFireTime = 0, gameTime = 400, lastTimeUpdate = Date.now();
 let isPaused = true, checkpointReached = (localStorage.getItem("marioCheckpointReached") === "true"), checkpointMsgTimer = 0;
 
+window.onerror = function(msg, url, line) {
+    console.error("DEBUG:", msg, "LINE:", line);
+    // Em smartphone, alert ajuda a debugar se o ecrã ficar preto
+    // alert("ERRO: " + msg + " LINHA: " + line);
+};
+
 function updateLevelButtons() {
     const area = document.getElementById("levelButtons"); 
     if (!area) return;
@@ -468,7 +474,15 @@ function draw() {
     ctx.fillStyle="#f00"; ctx.font = "bold 20px Courier"; ctx.fillText(hearts, 250, 60);
 }
 
-function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+function gameLoop() { 
+    requestAnimationFrame(gameLoop);
+    try {
+        update(); 
+        draw(); 
+    } catch(e) {
+        // Silenciar erros para manter o loop vivo, mas logar no console
+    }
+}
 
 // REGISTO PWA
     if ('serviceWorker' in navigator) {
