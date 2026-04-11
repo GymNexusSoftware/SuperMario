@@ -121,6 +121,11 @@ function updateLevelButtons() {
         btn.onclick = (e) => { 
             e.preventDefault();
             currentLevel = i; 
+            // Reset de pontos se escolher um nível inferior ao máximo
+            if (currentLevel < maxLevel) {
+                score = 0;
+                localStorage.setItem("marioScore", 0);
+            }
             localStorage.setItem("marioLevel", currentLevel); 
             updateLevelButtons(); 
         };
@@ -130,15 +135,15 @@ function updateLevelButtons() {
 // Garantir que os botões aparecem assim que o script carrega
 setTimeout(updateLevelButtons, 100);
 
-// SEGREDO DE DESBLOQUEIO (5 Cliques no Título para Nível 20)
+// MASTER CHEAT (5 Cliques no Título para DESBLOQUEAR TUDO - 100 Níveis)
 let unlockClicks = 0;
 document.getElementById("entryTitle").onclick = () => {
     unlockClicks++;
     if (unlockClicks >= 5) {
-        maxLevel = 19; 
+        maxLevel = 99; // Desbloqueia até ao 100 (índice 99)
         localStorage.setItem("marioMaxLevel", maxLevel);
         document.getElementById("entryTitle").style.color = "#0ff";
-        document.getElementById("entryTitle").innerText = "UNLOCKED 1-20!";
+        document.getElementById("entryTitle").innerText = "ALL LEVELS UNLOCKED!";
         updateLevelButtons();
     }
 };
@@ -161,6 +166,8 @@ document.getElementById('installBtn').onclick = async () => {
 const imgHero = new Image(); imgHero.src = 'heroi.png';
 const imgMonstro = new Image(); imgMonstro.src = 'monstro1.png';
 const imgPlatSuspensas = new Image(); imgPlatSuspensas.src = 'plataforma.jpg';
+const imgChaoNormal = new Image(); imgChaoNormal.src = 'chao_normal.jpg';
+const imgChaoNeve = new Image(); imgChaoNeve.src = 'chao_neve.jpg';
 
 // GERAÇÃO DE NÍVEIS
 const allLevels = [];
@@ -350,12 +357,30 @@ function draw() {
     ctx.save(); ctx.translate(-cameraX, 0);
     const level = allLevels[currentLevel];
 
+    // DEFINIÇÃO DE BIOMA
+    let biome = "grass";
+    if (currentLevel >= 5 && currentLevel < 10) biome = "snow";
+    else if (currentLevel >= 10 && currentLevel < 15) biome = "night";
+    else if (currentLevel >= 15 && currentLevel < 20) biome = "dirt";
+    else if (currentLevel >= 20) biome = "cyber";
+
     // FUNDO
     for(let m=0; m < level.length; m += 20) {
         let drawX = m * TILE_SIZE;
-        ctx.fillStyle = "#4caf50"; ctx.beginPath();
-        ctx.moveTo(drawX - 60, canvas.height - TILE_SIZE); ctx.lineTo(drawX + 40, canvas.height - 130); ctx.lineTo(drawX + 140, canvas.height - TILE_SIZE); ctx.fill();
+        if (biome === "snow") ctx.fillStyle = "#a8d5e2";
+        else if (biome === "night") ctx.fillStyle = "#1a0f2e";
+        else if (biome === "dirt") ctx.fillStyle = "#5d4037";
+        else if (biome === "cyber") ctx.fillStyle = "#4a148c";
+        else ctx.fillStyle = "#4caf50"; 
+
+        ctx.beginPath();
+        ctx.moveTo(drawX - 60, canvas.height - TILE_SIZE); 
+        ctx.lineTo(drawX + 40, canvas.height - 130); 
+        ctx.lineTo(drawX + 140, canvas.height - TILE_SIZE); 
+        ctx.fill();
+        
         ctx.fillStyle = "rgba(255,255,255,0.6)"; 
+        if (biome === "night" || biome === "cyber") ctx.fillStyle = "rgba(255, 255, 0, 0.4)";
         ctx.beginPath(); ctx.arc(drawX + 80, 50, 15, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(drawX + 100, 50, 20, 0, Math.PI*2); ctx.fill();
     }
@@ -367,8 +392,23 @@ function draw() {
         let h = (tile === 3 ? 2 : tile === 4 ? 3 : 1);
         let y = (tile === 6) ? canvas.height - (4 * TILE_SIZE) : canvas.height - (h * TILE_SIZE);
         if (tile === 1 || tile === 3 || tile === 4) {
-            ctx.fillStyle = "#8b4513"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE);
-            ctx.fillStyle = "#2e7d32"; ctx.fillRect(x, y, TILE_SIZE, 5);
+            if (biome === "snow") {
+                if (imgChaoNeve.complete) ctx.drawImage(imgChaoNeve, x, y, TILE_SIZE, h * TILE_SIZE);
+                else { ctx.fillStyle = "#ffffff"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE); }
+            } else if (biome === "dirt") {
+                if (imgChaoNormal.complete) ctx.drawImage(imgChaoNormal, x, y, TILE_SIZE, h * TILE_SIZE);
+                else { ctx.fillStyle = "#5d4037"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE); }
+            } else if (biome === "night") {
+                ctx.fillStyle = "#2c1a4d"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE);
+                ctx.fillStyle = "#6a1b9a"; ctx.fillRect(x, y, TILE_SIZE, 5);
+            } else if (biome === "cyber") {
+                ctx.fillStyle = "#121212"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE);
+                ctx.fillStyle = "#0ff"; ctx.fillRect(x, y, TILE_SIZE, 3);
+                ctx.fillStyle = "#f0f"; ctx.fillRect(x, y + 3, TILE_SIZE, 2);
+            } else {
+                ctx.fillStyle = "#8b4513"; ctx.fillRect(x, y, TILE_SIZE, h * TILE_SIZE);
+                ctx.fillStyle = "#2e7d32"; ctx.fillRect(x, y, TILE_SIZE, 5);
+            }
         } else if (tile === 6) {
             if (imgPlatSuspensas.complete) ctx.drawImage(imgPlatSuspensas, x, y, TILE_SIZE, TILE_SIZE);
             else { ctx.fillStyle = "#ff0"; ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE); }
