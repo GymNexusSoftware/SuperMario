@@ -74,6 +74,8 @@
         <input type="text" id="nameInput" maxlength="10" placeholder="NOME">
         <br>
         <button id="startBtn">START GAME</button>
+        <br><br>
+        <button id="installBtn" style="display:none; padding:10px 20px; background:#0ff; color:#000; border:2px solid #fff; font-family:inherit; font-weight:bold; cursor:pointer; text-transform:uppercase; box-shadow:4px 4px 0 #000;">DOWNLOAD APP</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -93,7 +95,21 @@ let currentLevel = parseInt(localStorage.getItem("marioLevel")) || 0;
 let score = parseInt(localStorage.getItem("marioScore")) || 0;
 let cameraX = 0, playerName = "NOME";
 let fireballs = [], lastFireTime = 0, gameTime = 400, lastTimeUpdate = Date.now();
-let isPaused = true, checkpointReached = false, checkpointMsgTimer = 0;
+let isPaused = true, checkpointReached = (localStorage.getItem("marioCheckpointReached") === "true"), checkpointMsgTimer = 0;
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); deferredPrompt = e;
+    document.getElementById('installBtn').style.display = 'inline-block';
+});
+document.getElementById('installBtn').onclick = async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
+        deferredPrompt = null;
+    }
+};
 
 // IMAGENS
 const imgHero = new Image(); imgHero.src = 'heroi.png';
@@ -127,7 +143,11 @@ function initMonsters() {
     }
 }
 
-const player = { x: 40, y: 100, width: 32, height: 44, velX: 0, velY: 0, jumping: false, direction: 1, hp: 100, isInvincible: false, timerInv: 0, checkpointX: 40 };
+const player = { 
+    x: 40, y: 100, width: 32, height: 44, velX: 0, velY: 0, jumping: false, direction: 1, hp: 100, 
+    isInvincible: false, timerInv: 0, 
+    checkpointX: parseFloat(localStorage.getItem("marioCheckpointX")) || 40 
+};
 const keys = {};
 
 function resetPlayer(reason) {
@@ -137,6 +157,8 @@ function resetPlayer(reason) {
         checkpointReached = false;
         localStorage.setItem("marioLevel", currentLevel);
         localStorage.setItem("marioScore", score);
+        localStorage.setItem("marioCheckpointX", 40);
+        localStorage.setItem("marioCheckpointReached", "false");
     } else if (reason === "fall" || reason === "death") {
         player.hp = 100;
         if (reason === "death") { 
@@ -257,6 +279,8 @@ function update() {
         player.checkpointX = lvlW / 2;
         checkpointMsgTimer = 60;
         localStorage.setItem("marioScore", score);
+        localStorage.setItem("marioCheckpointX", player.checkpointX);
+        localStorage.setItem("marioCheckpointReached", "true");
     }
 
     if (level[tileX] === 2) { score += 1000; currentLevel++; resetPlayer("win"); }
@@ -267,6 +291,10 @@ function draw() {
         ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#fff"; ctx.font = "30px Courier"; ctx.textAlign = "center";
         ctx.fillText(`WORLD 1-${currentLevel+1}`, canvas.width/2, canvas.height/2);
+        if (currentLevel > 0 || player.checkpointX > 40) {
+            ctx.fillStyle = "#0ff"; ctx.font = "bold 14px Courier";
+            ctx.fillText("PROGRESSO CARREGADO", canvas.width/2, canvas.height/2 + 40);
+        }
         ctx.textAlign = "left"; return;
     }
 
