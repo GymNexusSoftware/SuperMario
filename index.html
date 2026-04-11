@@ -110,8 +110,7 @@ let isPaused = true, checkpointReached = (localStorage.getItem("marioCheckpointR
 
 window.onerror = function(msg, url, line) {
     console.error("DEBUG:", msg, "LINE:", line);
-    // Em smartphone, alert ajuda a debugar se o ecrã ficar preto
-    // alert("ERRO: " + msg + " LINHA: " + line);
+    alert("ERRO DETETADO: " + msg + "\nLINHA: " + line);
 };
 
 function updateLevelButtons() {
@@ -253,6 +252,12 @@ document.getElementById("nameInput").value = localStorage.getItem("marioPlayerNa
 document.getElementById("startBtn").onclick = function() {
     playerName = document.getElementById("nameInput").value.toUpperCase() || "NOME";
     localStorage.setItem("marioPlayerName", playerName);
+    // VERIFICAÇÃO DE SEGURANÇA DE NÍVEL
+    if (currentLevel < 0 || currentLevel >= allLevels.length) {
+        currentLevel = 0;
+        localStorage.setItem("marioLevel", 0);
+    }
+    
     document.getElementById("namePopup").style.display = "none";
     canvas.style.display = "block";
     document.getElementById("gameControls").style.display = "flex";
