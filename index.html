@@ -129,9 +129,9 @@ function update() {
     if (isPaused) return;
     if (Date.now() - lastTimeUpdate > 1000) { gameTime--; lastTimeUpdate = Date.now(); if(gameTime <= 0) resetPlayer("death"); }
     
-    if (keys["ArrowRight"]) { player.velX += 0.5; player.direction = 1; }
-    else if (keys["ArrowLeft"]) { player.velX -= 0.5; player.direction = -1; }
-    else player.velX *= 0.8;
+    if (keys["ArrowRight"]) { player.velX = 4.5; player.direction = 1; }
+    else if (keys["ArrowLeft"]) { player.velX = -4.5; player.direction = -1; }
+    else player.velX = 0;
     
     player.velX = Math.max(-4.5, Math.min(4.5, player.velX));
     if (keys["ArrowUp"] && !player.jumping) { player.jumping = true; player.velY = -11; }
