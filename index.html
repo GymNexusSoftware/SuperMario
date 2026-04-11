@@ -305,7 +305,17 @@ function draw() {
     monsters.forEach(m => { if(m.alive) ctx.drawImage(imgMonstro, m.x, m.y, m.width, m.height); });
     fireballs.forEach(f => { ctx.fillStyle = "#ffeb3b"; ctx.beginPath(); ctx.arc(f.x+6, f.y+6, 6, 0, Math.PI*2); ctx.fill(); });
     
-    if (!player.isInvincible || Math.floor(Date.now() / 100) % 2 === 0) ctx.drawImage(imgHero, player.x, player.y, player.width, player.height);
+    if (!player.isInvincible || Math.floor(Date.now() / 100) % 2 === 0) {
+        ctx.save();
+        if (player.direction === -1) {
+            ctx.translate(player.x + player.width, player.y);
+            ctx.scale(-1, 1);
+            ctx.drawImage(imgHero, 0, 0, player.width, player.height);
+        } else {
+            ctx.drawImage(imgHero, player.x, player.y, player.width, player.height);
+        }
+        ctx.restore();
+    }
     
     if (checkpointMsgTimer > 0) {
         ctx.fillStyle = "#0ff"; ctx.font = "bold 20px Courier"; ctx.textAlign = "center";
