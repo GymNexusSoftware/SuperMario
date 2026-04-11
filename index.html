@@ -138,16 +138,47 @@ function update() {
     player.velY += 0.5;
     
     let level = allLevels[currentLevel];
-    player.x += player.velX; player.y += player.velY;
+    let oldX = player.x;
+    player.x += player.velX;
 
+    // COLISÃO HORIZONTAL (Impede de subir obstáculos automaticamente)
+    let sideX = player.velX > 0 ? player.x + player.width : player.x;
+    let tileSideX = Math.floor(sideX / TILE_SIZE);
+    let sideTile = level[tileSideX];
+    let wallHeight = 0;
+    if (sideTile === 1) wallHeight = 1;
+    else if (sideTile === 3) wallHeight = 2;
+    else if (sideTile === 4) wallHeight = 3;
+
+    if (wallHeight > 0) {
+        let wallTopY = canvas.height - (wallHeight * TILE_SIZE);
+        if (player.y + player.height > wallTopY + 5) {
+            player.x = oldX;
+            player.velX = 0;
+        }
+    }
+
+    player.y += player.velY;
+
+    // COLISÃO VERTICAL (Landing)
     let tileX = Math.floor((player.x + player.width/2) / TILE_SIZE);
     let groundY = 1000;
-    if (level[tileX] === 1) groundY = canvas.height - TILE_SIZE;
-    else if (level[tileX] === 3) groundY = canvas.height - TILE_SIZE * 2;
-    else if (level[tileX] === 4) groundY = canvas.height - TILE_SIZE * 3;
-    else if (level[tileX] === 6) groundY = canvas.height - TILE_SIZE * 4;
+    let t = level[tileX];
+    if (t === 1) groundY = canvas.height - TILE_SIZE;
+    else if (t === 3) groundY = canvas.height - TILE_SIZE * 2;
+    else if (t === 4) groundY = canvas.height - TILE_SIZE * 3;
+    else if (t === 6) {
+        let platY = canvas.height - TILE_SIZE * 4;
+        if (player.velY >= 0 && (player.y + player.height >= platY) && (player.y + player.height <= platY + 10)) {
+            groundY = platY;
+        }
+    }
 
-    if (player.y + player.height > groundY && player.velY >= 0) { player.y = groundY - player.height; player.velY = 0; player.jumping = false; }
+    if (player.y + player.height > groundY && player.velY >= 0) { 
+        player.y = groundY - player.height; 
+        player.velY = 0; 
+        player.jumping = false; 
+    }
     if (player.y > canvas.height) { resetPlayer("fall"); return; }
     
     cameraX = Math.max(0, player.x - 150);
