@@ -69,6 +69,7 @@
 </head>
 <body>
     <div id="scanlines"></div>
+    <button id="menuBtn" style="position: fixed; top: 10px; right: 10px; padding: 10px 15px; background: rgba(0,0,0,0.7); color: #0ff; border: 2px solid #0ff; cursor: pointer; display: none; z-index: 2000; font-family: inherit; font-size: 12px; font-weight: bold; box-shadow: 0 0 10px #0ff;">MENU</button>
     <div id="namePopup">
         <h2 id="entryTitle" style="color: #ff0; margin: 0; text-shadow: 2px 2px #f00; cursor: pointer; user-select: none;">PLAYER ENTRY</h2>
         <input type="text" id="nameInput" maxlength="10" placeholder="NOME">
@@ -246,8 +247,18 @@ document.getElementById("startBtn").onclick = function() {
     document.getElementById("namePopup").style.display = "none";
     canvas.style.display = "block";
     document.getElementById("gameControls").style.display = "flex";
+    document.getElementById("menuBtn").style.display = "block";
     resetPlayer("start");
-    gameLoop();
+    if (!window.gameStarted) { gameLoop(); window.gameStarted = true; }
+};
+
+document.getElementById("menuBtn").onclick = () => {
+    isPaused = true;
+    canvas.style.display = "none";
+    document.getElementById("gameControls").style.display = "none";
+    document.getElementById("menuBtn").style.display = "none";
+    document.getElementById("namePopup").style.display = "block";
+    updateLevelButtons();
 };
 
 window.addEventListener("keydown", e => { keys[e.code] = true; if(e.code === "KeyZ" || e.code === "KeyB") shoot(); });
@@ -357,12 +368,12 @@ function draw() {
     ctx.save(); ctx.translate(-cameraX, 0);
     const level = allLevels[currentLevel];
 
-    // DEFINIÇÃO DE BIOMA
+    // DEFINIÇÃO DE BIOMA (Ciclos de 20 níveis)
     let biome = "grass";
-    if (currentLevel >= 5 && currentLevel < 10) biome = "snow";
-    else if (currentLevel >= 10 && currentLevel < 15) biome = "night";
-    else if (currentLevel >= 15 && currentLevel < 20) biome = "dirt";
-    else if (currentLevel >= 20) biome = "cyber";
+    if (currentLevel >= 20 && currentLevel < 40) biome = "snow";
+    else if (currentLevel >= 40 && currentLevel < 60) biome = "night";
+    else if (currentLevel >= 60 && currentLevel < 80) biome = "dirt";
+    else if (currentLevel >= 80) biome = "cyber";
 
     // FUNDO
     for(let m=0; m < level.length; m += 20) {
