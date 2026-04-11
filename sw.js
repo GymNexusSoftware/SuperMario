@@ -7,7 +7,8 @@ const ASSETS = [
   './monstro1.png',
   './plataforma.jpg',
   './chao_normal.jpg',
-  './chao_neve.jpg'
+  './chao_neve.jpg',
+  './icon.png'
 ];
 
 // Instalação e Cache dos ficheiros

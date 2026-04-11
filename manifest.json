@@ -1,6 +1,6 @@
 {
-  "name": "Super Mario Miami PWA",
-  "short_name": "MarioMiami",
+  "name": "Super Farioli",
+  "short_name": "Farioli",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#2b0b3d",
@@ -8,8 +8,14 @@
   "orientation": "landscape",
   "icons": [
     {
-      "src": "heroi.png",
+      "src": "icon.png",
       "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     }
