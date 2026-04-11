@@ -5,7 +5,9 @@ const ASSETS = [
   './manifest.json',
   './heroi.png',
   './monstro1.png',
-  './plataforma.jpg'
+  './plataforma.jpg',
+  './chao_normal.jpg',
+  './chao_neve.jpg'
 ];
 
 // Instalação e Cache dos ficheiros
