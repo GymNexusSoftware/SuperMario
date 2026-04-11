@@ -3,7 +3,7 @@
 <head>
     <title>Super Farioli</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="manifest" href="manifest.json?v=10">
+    <link rel="manifest" href="manifest.json?v=20">
     <meta name="theme-color" content="#ff00ff">
     <!-- Apple PWA Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -402,11 +402,17 @@ function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
 // REGISTO PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=10').then(reg => {
-       if (localStorage.getItem('farioli_v') !== '10') {
-          reg.update(); localStorage.setItem('farioli_v', '10');
-       }
-       console.log('Farioli SW OK');
+    // Forçar limpeza se versão for antiga
+    if (localStorage.getItem('farioli_v') !== '20') {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        for(let reg of regs) reg.unregister();
+        localStorage.setItem('farioli_v', '20');
+        window.location.reload(true);
+      });
+    }
+
+    navigator.serviceWorker.register('./sw.js?v=20').then(reg => {
+       console.log('Farioli v20 OK');
     });
   });
 }
