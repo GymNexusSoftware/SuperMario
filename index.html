@@ -190,6 +190,7 @@ for (let n = 0; n < 100; n++) {
 let monsters = [];
 function initMonsters() {
     monsters = [];
+    if (!allLevels[currentLevel]) return; // Proteção contra nível inexistente
     const level = allLevels[currentLevel];
     for(let i=15; i<level.length - 10; i++) {
         if(level[i] === 1 && Math.random() > 0.90) {
@@ -470,19 +471,19 @@ function draw() {
 function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
 
 // REGISTO PWA
-if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Forçar limpeza se versão for antiga
-    if (localStorage.getItem('farioli_v') !== '20') {
+    if (localStorage.getItem('farioli_v') !== '25') {
       navigator.serviceWorker.getRegistrations().then(regs => {
         for(let reg of regs) reg.unregister();
-        localStorage.setItem('farioli_v', '20');
+        localStorage.setItem('farioli_v', '25');
         window.location.reload(true);
       });
     }
 
-    navigator.serviceWorker.register('./sw-v20.js?v=20').then(reg => {
-       console.log('Farioli v20 OK');
+    navigator.serviceWorker.register('./sw-v20.js?v=25').then(reg => {
+       console.log('Farioli v25 OK');
     });
   });
 }
