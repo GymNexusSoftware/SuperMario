@@ -89,9 +89,11 @@ const ctx = canvas.getContext("2d");
 canvas.width = 350; canvas.height = 600;
 
 const TILE_SIZE = 25; 
-let currentLevel = 0, score = 0, cameraX = 0, playerName = "NOME";
+let currentLevel = parseInt(localStorage.getItem("marioLevel")) || 0;
+let score = parseInt(localStorage.getItem("marioScore")) || 0;
+let cameraX = 0, playerName = "NOME";
 let fireballs = [], lastFireTime = 0, gameTime = 400, lastTimeUpdate = Date.now();
-let isPaused = false;
+let isPaused = true, checkpointReached = false, checkpointMsgTimer = 0;
 
 // IMAGENS
 const imgHero = new Image(); imgHero.src = 'heroi.png';
@@ -125,21 +127,27 @@ function initMonsters() {
     }
 }
 
-const player = { x: 40, y: 100, width: 32, height: 44, velX: 0, velY: 0, jumping: false, direction: 1, hp: 100, isInvincible: false, timerInv: 0 };
+const player = { x: 40, y: 100, width: 32, height: 44, velX: 0, velY: 0, jumping: false, direction: 1, hp: 100, isInvincible: false, timerInv: 0, checkpointX: 40 };
 const keys = {};
 
 function resetPlayer(reason) {
-    if (reason === "win") player.hp = Math.min(100, player.hp + 25);
-    else if (reason === "fall") {
-        player.hp -= 25;
-        if (player.hp <= 0) reason = "death";
+    if (reason === "win") {
+        player.hp = Math.min(100, player.hp + 25);
+        player.checkpointX = 40;
+        checkpointReached = false;
+        localStorage.setItem("marioLevel", currentLevel);
+        localStorage.setItem("marioScore", score);
+    } else if (reason === "fall" || reason === "death") {
+        player.hp = 100;
+        if (reason === "death") { 
+            // Já não fazemos currentLevel = 0 para ser um checkpoint permanente de nível
+        }
     }
-
-    if (reason === "death") { player.hp = 100; score = 0; currentLevel = 0; }
     
-    player.x = 40; player.y = 100; player.velX = 0; player.velY = 0;
+    player.x = player.checkpointX || 40; 
+    player.y = 100; player.velX = 0; player.velY = 0;
     player.jumping = false; player.isInvincible = false;
-    cameraX = 0; fireballs = []; gameTime = 400; 
+    cameraX = Math.max(0, player.x - 150); fireballs = []; gameTime = 400; 
     initMonsters();
 
     isPaused = true;
@@ -241,6 +249,16 @@ function update() {
     });
 
     if (player.isInvincible) { player.timerInv--; if (player.timerInv <= 0) player.isInvincible = false; }
+    
+    // CHECKPOINT DE MEIO DE NÍVEL
+    let lvlW = level.length * TILE_SIZE;
+    if (!checkpointReached && player.x > lvlW / 2) {
+        checkpointReached = true;
+        player.checkpointX = lvlW / 2;
+        checkpointMsgTimer = 60;
+        localStorage.setItem("marioScore", score);
+    }
+
     if (level[tileX] === 2) { score += 1000; currentLevel++; resetPlayer("win"); }
 }
 
@@ -288,6 +306,13 @@ function draw() {
     fireballs.forEach(f => { ctx.fillStyle = "#ffeb3b"; ctx.beginPath(); ctx.arc(f.x+6, f.y+6, 6, 0, Math.PI*2); ctx.fill(); });
     
     if (!player.isInvincible || Math.floor(Date.now() / 100) % 2 === 0) ctx.drawImage(imgHero, player.x, player.y, player.width, player.height);
+    
+    if (checkpointMsgTimer > 0) {
+        ctx.fillStyle = "#0ff"; ctx.font = "bold 20px Courier"; ctx.textAlign = "center";
+        ctx.fillText("CHECKPOINT!", player.x + player.width/2, player.y - 20);
+        ctx.textAlign = "left"; checkpointMsgTimer--;
+    }
+    
     ctx.restore();
     
     // UI Ajustada para Vertical
