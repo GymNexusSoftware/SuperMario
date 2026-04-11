@@ -73,6 +73,10 @@
         <h2 style="color: #ff0; margin: 0; text-shadow: 2px 2px #f00;">PLAYER ENTRY</h2>
         <input type="text" id="nameInput" maxlength="10" placeholder="NOME">
         <br>
+        <div id="levelSelectArea" style="margin: 15px 0; border: 1px solid #0ff; padding: 10px;">
+            <p style="color: #fff; font-size: 14px; margin: 0 0 10px 0; letter-spacing: 1px;">LEVEL SELECT:</p>
+            <div id="levelButtons" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 80px; overflow-y: auto;"></div>
+        </div>
         <button id="startBtn">START GAME</button>
         <br><br>
         <button id="installBtn" style="display:none; padding:10px 20px; background:#0ff; color:#000; border:2px solid #fff; font-family:inherit; font-weight:bold; cursor:pointer; text-transform:uppercase; box-shadow:4px 4px 0 #000;">DOWNLOAD APP</button>
@@ -92,10 +96,24 @@ canvas.width = 350; canvas.height = 600;
 
 const TILE_SIZE = 25; 
 let currentLevel = parseInt(localStorage.getItem("marioLevel")) || 0;
+let maxLevel = parseInt(localStorage.getItem("marioMaxLevel")) || 0;
 let score = parseInt(localStorage.getItem("marioScore")) || 0;
 let cameraX = 0, playerName = "NOME";
 let fireballs = [], lastFireTime = 0, gameTime = 400, lastTimeUpdate = Date.now();
 let isPaused = true, checkpointReached = (localStorage.getItem("marioCheckpointReached") === "true"), checkpointMsgTimer = 0;
+
+function updateLevelButtons() {
+    const area = document.getElementById("levelButtons"); area.innerHTML = "";
+    for (let i = 0; i <= maxLevel; i++) {
+        const btn = document.createElement("button");
+        btn.innerText = i + 1;
+        btn.style.cssText = "padding: 8px 12px; background: #111; color: #0ff; border: 1px solid #0ff; cursor: pointer; font-family: inherit; font-weight: bold;";
+        if (i === currentLevel) { btn.style.borderColor = "#f0f"; btn.style.color = "#f0f"; btn.style.boxShadow = "0 0 10px #f0f"; }
+        btn.onclick = () => { currentLevel = i; updateLevelButtons(); };
+        area.appendChild(btn);
+    }
+}
+updateLevelButtons();
 
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -155,10 +173,12 @@ function resetPlayer(reason) {
         player.hp = Math.min(100, player.hp + 25);
         player.checkpointX = 40;
         checkpointReached = false;
+        if (currentLevel > maxLevel) { maxLevel = currentLevel; localStorage.setItem("marioMaxLevel", maxLevel); }
         localStorage.setItem("marioLevel", currentLevel);
         localStorage.setItem("marioScore", score);
         localStorage.setItem("marioCheckpointX", 40);
         localStorage.setItem("marioCheckpointReached", "false");
+        updateLevelButtons();
     } else if (reason === "fall" || reason === "death") {
         player.hp = 100;
         if (reason === "death") { 
