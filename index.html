@@ -95,8 +95,10 @@ const ctx = canvas.getContext("2d");
 canvas.width = 350; canvas.height = 600;
 
 const TILE_SIZE = 25; 
-let currentLevel = parseInt(localStorage.getItem("marioLevel")) || 0;
 let maxLevel = parseInt(localStorage.getItem("marioMaxLevel")) || 0;
+let currentLevel = parseInt(localStorage.getItem("marioLevel"));
+if (isNaN(currentLevel)) currentLevel = maxLevel; 
+
 let score = parseInt(localStorage.getItem("marioScore")) || 0;
 let cameraX = 0, playerName = "NOME";
 let fireballs = [], lastFireTime = 0, gameTime = 400, lastTimeUpdate = Date.now();
@@ -106,10 +108,14 @@ function updateLevelButtons() {
     const area = document.getElementById("levelButtons"); area.innerHTML = "";
     for (let i = 0; i <= maxLevel; i++) {
         const btn = document.createElement("button");
-        btn.innerText = i + 1;
-        btn.style.cssText = "padding: 8px 12px; background: #111; color: #0ff; border: 1px solid #0ff; cursor: pointer; font-family: inherit; font-weight: bold;";
+        btn.innerText = `1-${i + 1}`;
+        btn.style.cssText = "padding: 8px 10px; background: #111; color: #0ff; border: 1px solid #0ff; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 12px;";
         if (i === currentLevel) { btn.style.borderColor = "#f0f"; btn.style.color = "#f0f"; btn.style.boxShadow = "0 0 10px #f0f"; }
-        btn.onclick = () => { currentLevel = i; updateLevelButtons(); };
+        btn.onclick = () => { 
+            currentLevel = i; 
+            localStorage.setItem("marioLevel", currentLevel); 
+            updateLevelButtons(); 
+        };
         area.appendChild(btn);
     }
 }
