@@ -70,7 +70,7 @@
 <body>
     <div id="scanlines"></div>
     <div id="namePopup">
-        <h2 style="color: #ff0; margin: 0; text-shadow: 2px 2px #f00;">PLAYER ENTRY</h2>
+        <h2 id="entryTitle" style="color: #ff0; margin: 0; text-shadow: 2px 2px #f00; cursor: pointer; user-select: none;">PLAYER ENTRY</h2>
         <input type="text" id="nameInput" maxlength="10" placeholder="NOME">
         <br>
         <div id="levelSelectArea" style="margin: 15px 0; border: 1px solid #0ff; padding: 10px;">
@@ -129,6 +129,19 @@ function updateLevelButtons() {
 }
 // Garantir que os botões aparecem assim que o script carrega
 setTimeout(updateLevelButtons, 100);
+
+// SEGREDO DE DESBLOQUEIO (5 Cliques no Título para Nível 20)
+let unlockClicks = 0;
+document.getElementById("entryTitle").onclick = () => {
+    unlockClicks++;
+    if (unlockClicks >= 5) {
+        maxLevel = 19; 
+        localStorage.setItem("marioMaxLevel", maxLevel);
+        document.getElementById("entryTitle").style.color = "#0ff";
+        document.getElementById("entryTitle").innerText = "UNLOCKED 1-20!";
+        updateLevelButtons();
+    }
+};
 
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
