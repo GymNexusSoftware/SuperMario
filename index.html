@@ -4,23 +4,64 @@
     <title>Super Mario - Edição Final Restaurada</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: manipulation; }
-        canvas { border: 4px solid #333; image-rendering: pixelated; max-width: 95vw; max-height: 70vh; background: #5c94fc; display: none; }
+        body { 
+            margin: 0; 
+            background: linear-gradient(180deg, #050505 0%, #2b0b3d 40%, #76218e 70%, #ff00ff 100%); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            overflow: hidden; 
+            font-family: 'Courier New', Courier, monospace; 
+            touch-action: manipulation; 
+        }
+        canvas { 
+            border: 6px solid #0ff; 
+            image-rendering: pixelated; 
+            max-width: 95vw; 
+            max-height: 70vh; 
+            background: #5c94fc; 
+            display: none; 
+            box-shadow: 0 0 20px #0ff, 0 0 10px #f0f;
+            z-index: 5;
+        }
         
-        /* POPUP RESTAURADO */
-        #namePopup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 4px solid #fff; padding: 30px; text-align: center; box-shadow: 8px 8px 0 #f0f, -8px -8px 0 #0ff; z-index: 1000; width: 280px; display: block; }
-        #nameInput { padding: 10px; width: 80%; background: #111; border: 2px solid #0ff; color: #fff; font-family: inherit; font-size: 18px; text-align: center; text-transform: uppercase; margin: 15px 0; outline: none; }
-        #startBtn { padding: 12px 25px; background: #f0f; color: #fff; border: 2px solid #fff; font-family: inherit; font-weight: bold; cursor: pointer; text-transform: uppercase; box-shadow: 4px 4px 0 #000; }
+        #scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 2px 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #namePopup { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: rgba(0, 0, 0, 0.9); border: 4px solid #f0f; padding: 40px; 
+            text-align: center; box-shadow: 10px 10px 0 #0ff; z-index: 1000; width: 300px; 
+            display: block; 
+        }
+        #nameInput { 
+            padding: 12px; width: 85%; background: #111; border: 2px solid #0ff; 
+            color: #fff; font-family: inherit; font-size: 20px; text-align: center; 
+            text-transform: uppercase; margin: 20px 0; outline: none; 
+            box-shadow: 0 0 10px #0ff;
+        }
+        #startBtn { 
+            padding: 14px 30px; background: #f0f; color: #fff; border: 2px solid #fff; 
+            font-family: inherit; font-weight: bold; cursor: pointer; text-transform: uppercase; 
+            box-shadow: 4px 4px 0 #0ff; transition: 0.2s;
+        }
+        #startBtn:hover { transform: scale(1.05); box-shadow: 6px 6px 0 #0ff; }
         
-        /* CONTROLOS */
-        .controls { display: none; justify-content: space-between; width: 95vw; padding: 15px; margin-top: 10px; }
-        .btn { width: 65px; height: 65px; background: #333; border: 3px solid #eee; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; box-shadow: 0 4px #000; }
-        .btn:active { transform: translateY(2px); box-shadow: 0 2px #000; background: #555; }
+        .controls { display: none; justify-content: space-between; width: 95vw; padding: 15px; margin-top: 10px; z-index: 20; }
+        .btn { width: 70px; height: 70px; background: rgba(51, 51, 51, 0.8); border: 3px solid #0ff; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; box-shadow: 0 4px #f0f; }
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px #f0f; background: #555; }
         .d-pad, .actions { display: flex; gap: 15px; }
     </style>
 </head>
 <body>
-
+    <div id="scanlines"></div>
     <div id="namePopup">
         <h2 style="color: #ff0; margin: 0; text-shadow: 2px 2px #f00;">PLAYER ENTRY</h2>
         <input type="text" id="nameInput" maxlength="10" placeholder="NOME">
@@ -106,8 +147,10 @@ function shoot() {
 }
 
 // EVENTOS
+document.getElementById("nameInput").value = localStorage.getItem("marioPlayerName") || "";
 document.getElementById("startBtn").onclick = function() {
     playerName = document.getElementById("nameInput").value.toUpperCase() || "NOME";
+    localStorage.setItem("marioPlayerName", playerName);
     document.getElementById("namePopup").style.display = "none";
     canvas.style.display = "block";
     document.getElementById("gameControls").style.display = "flex";
