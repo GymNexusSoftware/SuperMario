@@ -96,9 +96,11 @@ canvas.width = 350; canvas.height = 600;
 
 const TILE_SIZE = 25; 
 let maxLevel = parseInt(localStorage.getItem("marioMaxLevel")) || 0;
-let currentLevel = parseInt(localStorage.getItem("marioLevel"));
-if (isNaN(currentLevel)) currentLevel = maxLevel; 
+// Migração de progresso antigo se existir
+let oldLevel = parseInt(localStorage.getItem("marioLevel")) || 0;
+if (oldLevel > maxLevel) { maxLevel = oldLevel; localStorage.setItem("marioMaxLevel", maxLevel); }
 
+let currentLevel = maxLevel; // Começa sempre no nível mais alto desbloqueado
 let score = parseInt(localStorage.getItem("marioScore")) || 0;
 let cameraX = 0, playerName = "NOME";
 let fireballs = [], lastFireTime = 0, gameTime = 400, lastTimeUpdate = Date.now();
@@ -109,7 +111,7 @@ function updateLevelButtons() {
     for (let i = 0; i <= maxLevel; i++) {
         const btn = document.createElement("button");
         btn.innerText = `1-${i + 1}`;
-        btn.style.cssText = "padding: 8px 10px; background: #111; color: #0ff; border: 1px solid #0ff; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 12px;";
+        btn.style.cssText = "padding: 8px 10px; background: #111; color: #0ff; border: 1px solid #0ff; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 12px; min-width: 45px;";
         if (i === currentLevel) { btn.style.borderColor = "#f0f"; btn.style.color = "#f0f"; btn.style.boxShadow = "0 0 10px #f0f"; }
         btn.onclick = () => { 
             currentLevel = i; 
