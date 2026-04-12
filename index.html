@@ -78,7 +78,7 @@
             <p style="color: #fff; font-size: 14px; margin: 0 0 10px 0; letter-spacing: 1px;">LEVEL SELECT:</p>
             <div id="levelButtons" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 80px; overflow-y: auto;"></div>
         </div>
-        <button id="startBtn" style="background:#0f0; color:#000; padding:15px 30px; font-weight:bold; border:none; cursor:pointer;">START GAME (v31)</button>
+        <button id="startBtn" style="background:#0f0; color:#000; padding:15px 30px; font-weight:bold; border:none; cursor:pointer;">START GAME (v32)</button>
         <br><br>
         <button id="installBtn" style="display:none; padding:10px 20px; background:#0ff; color:#000; border:2px solid #fff; font-family:inherit; font-weight:bold; cursor:pointer; text-transform:uppercase; box-shadow:4px 4px 0 #000;">DOWNLOAD APP</button>
     </div>
@@ -126,19 +126,25 @@ console.log("Levels generated:", allLevels.length);
 
 // 2. SINCRONIZAÇÃO DE PROGRESSO
 let maxLevel = parseInt(localStorage.getItem("marioMaxLevel")) || 0;
-let savedLevel = parseInt(localStorage.getItem("marioLevel")) || 0;
-// Garantir que o nível atual não ultrapassa o máximo desbloqueado nem o limite do array
-maxLevel = Math.min(allLevels.length - 1, Math.max(0, maxLevel));
-let currentLevel = Math.min(maxLevel, Math.max(0, savedLevel));
-
+let currentLevel = parseInt(localStorage.getItem("marioLevel")) || 0;
 let score = parseInt(localStorage.getItem("marioScore")) || 0;
+let checkpointReached = false;
 let cameraX = 0, playerName = "NOME", pauseTimeout;
 let fireballs = [], lastFireTime = 0, gameTime = 400, lastTimeUpdate = Date.now();
-let isPaused = true, checkpointReached = (localStorage.getItem("marioCheckpointReached") === "true"), checkpointMsgTimer = 0;
+let isPaused = true, checkpointMsgTimer = 0;
 
-window.onerror = function(msg, url, line) {
-    console.error("DEBUG:", msg, "LINE:", line);
-};
+function syncProgress() {
+    maxLevel = parseInt(localStorage.getItem("marioMaxLevel")) || 0;
+    currentLevel = parseInt(localStorage.getItem("marioLevel")) || 0;
+    score = parseInt(localStorage.getItem("marioScore")) || 0;
+    checkpointReached = (localStorage.getItem("marioCheckpointReached") === "true");
+    
+    // Validar limites
+    maxLevel = Math.min(allLevels.length - 1, Math.max(0, maxLevel));
+    currentLevel = Math.min(maxLevel, Math.max(0, currentLevel));
+}
+
+syncProgress();
 
 function updateLevelButtons() {
     const area = document.getElementById("levelButtons"); 
@@ -159,15 +165,16 @@ function updateLevelButtons() {
             e.preventDefault();
             currentLevel = i; 
             // Reset de checkpoint ao mudar de nível manualmente
+            localStorage.setItem("marioLevel", currentLevel); 
             localStorage.setItem("marioCheckpointReached", "false");
             localStorage.setItem("marioCheckpointX", 40);
-            localStorage.setItem("marioLevel", currentLevel); 
-            updateLevelButtons(); 
+            syncProgress();
+            updateLevelButtons();
+            console.log("Level selected:", currentLevel + 1);
         };
         area.appendChild(btn);
     }
 }
-// Garantir que os botões aparecem assim que o script carrega
 updateLevelButtons();
 
 // MASTER CHEAT (5 Cliques no Título para DESBLOQUEAR TUDO - 100 Níveis)
@@ -225,12 +232,12 @@ const player = {
 const keys = {};
 
 function resetPlayer(reason) {
+    syncProgress(); // Recarregar estado atualizado
+    
     if (reason === "win") {
         player.hp = Math.min(100, player.hp + 25);
-        player.checkpointX = 40;
         checkpointReached = false;
         
-        // Incrementar nível e atualizar máximo
         if (currentLevel < allLevels.length - 1) {
             currentLevel++;
             if (currentLevel > maxLevel) {
@@ -244,17 +251,17 @@ function resetPlayer(reason) {
         localStorage.setItem("marioCheckpointX", 40);
         localStorage.setItem("marioCheckpointReached", "false");
         updateLevelButtons();
-    } else if (reason === "fall" || reason === "death") {
-        player.hp = 100;
     }
     
-    // Agora carregar o checkpoint guardado em qualquer início ou morte
+    player.hp = 100;
     player.x = parseFloat(localStorage.getItem("marioCheckpointX")) || 40;
     player.y = 100; player.velX = 0; player.velY = 0;
     player.jumping = false; player.isInvincible = false;
     cameraX = Math.max(0, player.x - 150); fireballs = []; gameTime = 400; 
     initMonsters();
 
+    console.log("Player reset. Reason:", reason, "Level:", currentLevel + 1);
+    
     isPaused = true;
     if (pauseTimeout) clearTimeout(pauseTimeout);
     pauseTimeout = setTimeout(() => { isPaused = false; }, 1000);
@@ -519,16 +526,16 @@ function gameLoop() {
     if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Forçar limpeza se versão for antiga
-    if (localStorage.getItem('farioli_v') !== '31') {
+    if (localStorage.getItem('farioli_v') !== '32') {
       navigator.serviceWorker.getRegistrations().then(regs => {
         for(let reg of regs) reg.unregister();
-        localStorage.setItem('farioli_v', '31');
+        localStorage.setItem('farioli_v', '32');
         window.location.reload(true);
       });
     }
 
-    navigator.serviceWorker.register('./sw-v30.js?v=31').then(reg => {
-       console.log('Farioli v31 OK');
+    navigator.serviceWorker.register('./sw-v30.js?v=32').then(reg => {
+       console.log('Farioli v32 OK');
     });
   });
 }
