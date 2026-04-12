@@ -1,4 +1,4 @@
-const CACHE_NAME = 'farioli-v30';
+const CACHE_NAME = 'farioli-v31';
 const ASSETS = [
   './',
   './index.html',
