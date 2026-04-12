@@ -74,13 +74,15 @@
         <h2 id="entryTitle" style="color: #ff0; margin: 0; text-shadow: 2px 2px #f00; cursor: pointer; user-select: none;">PLAYER ENTRY</h2>
         <input type="text" id="nameInput" maxlength="10" placeholder="NOME">
         <br>
-        <div id="levelSelectArea" style="margin: 15px 0; border: 1px solid #0ff; padding: 10px;">
-            <p style="color: #fff; font-size: 14px; margin: 0 0 10px 0; letter-spacing: 1px;">LEVEL SELECT:</p>
-            <div id="levelButtons" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 80px; overflow-y: auto;"></div>
+        <div id="levelSelectArea" style="margin: 10px 0; border: 1px solid #0ff; padding: 10px; background: rgba(0,255,255,0.05);">
+            <p style="color: #fff; font-size: 13px; margin: 0 0 8px 0; letter-spacing: 1px;">LEVEL SELECT:</p>
+            <div id="levelButtons" style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-height: 120px; overflow-y: auto; padding: 5px;"></div>
         </div>
-        <button id="startBtn" style="background:#0f0; color:#000; padding:15px 30px; font-weight:bold; border:none; cursor:pointer;">START GAME (v32)</button>
-        <br><br>
-        <button id="installBtn" style="display:none; padding:10px 20px; background:#0ff; color:#000; border:2px solid #fff; font-family:inherit; font-weight:bold; cursor:pointer; text-transform:uppercase; box-shadow:4px 4px 0 #000;">DOWNLOAD APP</button>
+        <button id="startBtn" style="background:#0f0; color:#000; padding:15px 30px; font-weight:bold; border:none; cursor:pointer; width: 100%; font-family: inherit;">START GAME (v32)</button>
+        <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+            <button id="installBtn" style="display:none; padding:8px 12px; background:#0ff; color:#111; border:none; font-family:inherit; font-weight:bold; cursor:pointer; font-size: 10px;">INSTALL APP</button>
+            <button id="resetDataBtn" style="padding:8px 12px; background:#444; color:#f66; border:1px solid #f66; font-family:inherit; font-weight:bold; cursor:pointer; font-size: 10px;">RESET PROGRESS</button>
+        </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -161,10 +163,9 @@ function updateLevelButtons() {
             btn.style.borderColor = "#f0f"; btn.style.color = "#f0f"; btn.style.boxShadow = "0 0 15px #f0f"; btn.style.background = "#222";
         }
         
-        btn.onclick = (e) => { 
+        const handleSelect = (e) => {
             e.preventDefault();
             currentLevel = i; 
-            // Reset de checkpoint ao mudar de nível manualmente
             localStorage.setItem("marioLevel", currentLevel); 
             localStorage.setItem("marioCheckpointReached", "false");
             localStorage.setItem("marioCheckpointX", 40);
@@ -172,10 +173,20 @@ function updateLevelButtons() {
             updateLevelButtons();
             console.log("Level selected:", currentLevel + 1);
         };
+
+        btn.onclick = handleSelect;
+        btn.ontouchstart = handleSelect;
         area.appendChild(btn);
     }
 }
 updateLevelButtons();
+
+document.getElementById("resetDataBtn").onclick = () => {
+    if(confirm("WIPE ALL PROGRESS?")) {
+        localStorage.clear();
+        window.location.reload();
+    }
+};
 
 // MASTER CHEAT (5 Cliques no Título para DESBLOQUEAR TUDO - 100 Níveis)
 let unlockClicks = 0;
@@ -534,7 +545,7 @@ function gameLoop() {
       });
     }
 
-    navigator.serviceWorker.register('./sw-v30.js?v=32').then(reg => {
+    navigator.serviceWorker.register('./sw-v32.js?v=32').then(reg => {
        console.log('Farioli v32 OK');
     });
   });
